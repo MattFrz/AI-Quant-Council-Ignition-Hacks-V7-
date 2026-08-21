@@ -1,0 +1,157 @@
+{
+  "_README": "SYNTHETIC FIXTURE - step 1.12 of the build plan. The company, quotes and numbers here are invented to exercise the contract, NOT real research. Cecile builds the whole frontend against this file; every backend lane asserts its output matches this shape. Delete the _README key before feeding it to pydantic, or leave it - extra keys are ignored.",
+
+  "idea_id": "fixture-synthetic-001",
+  "ticker": "NGSM",
+  "company_name": "Northgate Semiconductor Inc.",
+  "side": "LONG",
+  "as_of": "2025-01-15",
+
+  "alpha_score": 8.7,
+  "confidence": 0.82,
+  "expected_alpha": 0.054,
+  "position_size_pct": 4.2,
+
+  "catalysts": [
+    {
+      "catalyst_id": "cat-001",
+      "ticker": "NGSM",
+      "headline": "Raised full-year data-center capex guidance by 18%",
+      "quote": "We now expect fiscal 2025 capital expenditures of $4.1 to $4.3 billion, up from our prior range of $3.4 to $3.6 billion, driven primarily by accelerated build-out of advanced packaging capacity.",
+      "source_type": "sec_filing",
+      "source_url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=10-Q",
+      "source_date": "2024-11-07",
+      "event_date": "2024-11-07",
+      "direction": "bullish",
+      "confidence": 0.91,
+      "extracted_by": "catalyst_extractor.v1"
+    },
+    {
+      "catalyst_id": "cat-002",
+      "ticker": "NGSM",
+      "headline": "Two largest customers both guided infrastructure spending higher",
+      "quote": "Our infrastructure investment for the coming year will be meaningfully above the levels we discussed last quarter, and we expect that elevated pace to persist through at least the first half.",
+      "source_type": "transcript",
+      "source_url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=8-K",
+      "source_date": "2024-10-29",
+      "event_date": "2024-10-29",
+      "direction": "bullish",
+      "confidence": 0.78,
+      "extracted_by": "catalyst_extractor.v1"
+    },
+    {
+      "catalyst_id": "cat-003",
+      "ticker": "NGSM",
+      "headline": "Supplier lead times extended from 14 to 22 weeks",
+      "quote": "Lead times on advanced substrate materials have extended materially versus the prior quarter, and we are qualifying a second source to protect delivery commitments.",
+      "source_type": "earnings_release",
+      "source_url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=8-K",
+      "source_date": "2024-11-07",
+      "event_date": "2024-10-31",
+      "direction": "bullish",
+      "confidence": 0.64,
+      "extracted_by": "catalyst_extractor.v1"
+    }
+  ],
+
+  "alpha": {
+    "ticker": "NGSM",
+    "as_of": "2025-01-15",
+    "contributions": [
+      { "factor": "fundamental_composite", "category": "fundamental",       "zscore":  1.40, "weight": 1.50, "contribution":  2.1 },
+      { "factor": "eps_revision_3m",       "category": "earnings_revision", "zscore":  1.70, "weight": 1.00, "contribution":  1.7 },
+      { "factor": "mgmt_sentiment_delta",  "category": "nlp",               "zscore":  1.50, "weight": 0.80, "contribution":  1.2 },
+      { "factor": "momentum_12_1",         "category": "momentum",          "zscore":  1.60, "weight": 0.50, "contribution":  0.8 },
+      { "factor": "ev_to_sales",           "category": "valuation",         "zscore": -0.60, "weight": 0.50, "contribution": -0.3 },
+      { "factor": "realized_vol_60d",      "category": "risk",              "zscore": -1.00, "weight": 0.50, "contribution": -0.5 }
+    ],
+    "composite_alpha": 5.0,
+    "alpha_score": 8.7
+  },
+
+  "backtest": {
+    "strategy_name": "capex_guidance_upgrade_v1",
+    "universe_size": 1000,
+    "window": {
+      "train_start": "2015-01-01",
+      "train_end": "2022-12-31",
+      "test_start": "2023-01-01",
+      "test_end": "2024-12-31"
+    },
+    "equity_curve": [
+      { "date": "2023-01-01", "value": 1.000 },
+      { "date": "2023-04-01", "value": 1.030 },
+      { "date": "2023-07-01", "value": 1.090 },
+      { "date": "2023-10-01", "value": 1.060 },
+      { "date": "2024-01-01", "value": 1.140 },
+      { "date": "2024-04-01", "value": 1.190 },
+      { "date": "2024-07-01", "value": 1.170 },
+      { "date": "2024-10-01", "value": 1.260 },
+      { "date": "2024-12-31", "value": 1.310 }
+    ],
+    "drawdown_curve": [
+      { "date": "2023-01-01", "value":  0.0000 },
+      { "date": "2023-04-01", "value":  0.0000 },
+      { "date": "2023-07-01", "value":  0.0000 },
+      { "date": "2023-10-01", "value": -0.0275 },
+      { "date": "2024-01-01", "value":  0.0000 },
+      { "date": "2024-04-01", "value":  0.0000 },
+      { "date": "2024-07-01", "value": -0.0168 },
+      { "date": "2024-10-01", "value":  0.0000 },
+      { "date": "2024-12-31", "value":  0.0000 }
+    ],
+    "benchmark_curve": [
+      { "date": "2023-01-01", "value": 1.000 },
+      { "date": "2023-04-01", "value": 1.020 },
+      { "date": "2023-07-01", "value": 1.050 },
+      { "date": "2023-10-01", "value": 1.030 },
+      { "date": "2024-01-01", "value": 1.080 },
+      { "date": "2024-04-01", "value": 1.110 },
+      { "date": "2024-07-01", "value": 1.100 },
+      { "date": "2024-10-01", "value": 1.150 },
+      { "date": "2024-12-31", "value": 1.190 }
+    ],
+    "total_return": 0.310,
+    "annualized_return": 0.1445,
+    "benchmark_annualized_return": 0.0909,
+    "excess_return": 0.0536,
+    "sharpe": 1.31,
+    "sortino": 1.68,
+    "volatility": 0.110,
+    "max_drawdown": -0.0275,
+    "turnover": 1.80,
+    "win_rate": 0.58,
+    "n_trades": 214,
+    "commission_bps": 1.0,
+    "slippage_model": "participation_rate",
+    "max_adv_participation": 0.05,
+    "is_walk_forward": true,
+    "notes": "SYNTHETIC fixture values. Replace with real engine output in Phase 2. Curves are sampled quarterly for readability; the real result should carry daily points."
+  },
+
+  "risk": {
+    "beta": 0.94,
+    "volatility": 0.213,
+    "max_drawdown": -0.097,
+    "var_95": -0.021,
+    "cvar_95": -0.033,
+    "sector": "Information Technology",
+    "sector_exposure": {
+      "Information Technology": 0.62,
+      "Industrials": 0.21,
+      "Communication Services": 0.17
+    },
+    "concentration": 0.042,
+    "avg_correlation": 0.38,
+    "days_to_liquidate": 1.4,
+    "risk_band": "medium"
+  },
+
+  "validator_verdict": "survived",
+
+  "bull_case": "Capex guidance was raised 18% while sell-side revenue estimates moved less than 4%, leaving a gap between committed customer spending and modelled expectations. Both of the company's largest customers independently guided infrastructure spending higher in the same two-week window, and extending supplier lead times corroborate genuine demand rather than inventory build. Historically, guidance raises of this magnitude in this sector have preceded positive earnings revisions within two quarters.",
+
+  "bear_case": "The move may already be priced: the stock has outrun its sector by a wide margin over twelve months, and the valuation factor scores negative. Extended lead times cut both ways - they can signal demand, but they also cap near-term deliverable revenue and raise the risk of double-ordering that unwinds violently. The event study sample is small, and roughly a third of comparable guidance raises were followed by negative six-month excess returns, so the historical edge is real but far from reliable.",
+
+  "pm_rationale": "Taking the long at a reduced 4.2% weight. The evidence is well-sourced and the signal survives walk-forward validation with a Sharpe of 1.31 and a shallow drawdown, but the bear's crowding objection is not fully answered by the data and the valuation factor is a genuine drag. Sizing below the 5% cap reflects that unresolved disagreement rather than overriding it."
+}

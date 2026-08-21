@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Secrets
+.env
+.env.local
+
+# Cached data — regenerate with scripts/seed_data.py
+data/cache/*
+!data/cache/.gitkeep
+*.parquet
+*.faiss
+*.index
+
+# Node / Next
+node_modules/
+.next/
+out/
+frontend/.env.local
+
+# C++ build artifacts
+build/
+*.so
+*.pyd
+*.o
+*.obj
+cpp/third_party/*
+!cpp/third_party/.gitkeep
+
+# Notebooks
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

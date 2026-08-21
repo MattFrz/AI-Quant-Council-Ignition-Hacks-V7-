@@ -1,0 +1,10 @@
+/* Placeholder so `npm run dev` runs. Cecile replaces this in step D3. */
+:root {
+  color-scheme: light dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
