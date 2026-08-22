@@ -19,12 +19,87 @@ from data.schemas.trade_idea import TradeIdea
 # "grounded only in retrieved evidence" framing for the bull side.
 
 
+#: Chunks sent for event extraction. One LLM call per chunk, so this is the
+#: main cost dial on a run. 12 is enough to find catalysts across a handful of
+#: filings without turning a demo into a four-minute wait.
+_MAX_EXTRACTION_CHUNKS = 12
+
+
+def _extract_catalysts(state, retriever, llm, universe):
+    """Retrieved chunks -> Catalyst objects. The section 3 audit trail.
+
+    Sits between the researcher and the analysts because both bull and bear
+    argue from catalysts, and the PortfolioManager cannot name a primary
+    ticker without them.
+
+    Every catalyst keeps a verbatim quote and a real source_url; a chunk whose
+    parent filing is missing is skipped rather than cited to nothing.
+    """
+    from backend.rag.retrieval.citations import to_citation
+    from backend.research.catalysts.extractor import events_to_catalysts
+    from backend.research.event_extraction.filings import extract_events_batch
+
+    chunks = state.retrieved_chunks or []
+    if not chunks:
+        state.emit("extract_catalysts", "Extracting catalysts", "done", "no chunks retrieved")
+        return state
+
+    state.emit("extract_catalysts", "Extracting catalysts", "in_progress")
+
+    filing_lookup = retriever.filing_lookup
+    citation_lookup = {}
+    seen = set()
+    ordered = []
+    for chunk in chunks:
+        if chunk.chunk_id in seen:
+            continue
+        seen.add(chunk.chunk_id)
+        filing = filing_lookup.get(chunk.accession_no)
+        if filing is None:
+            continue  # no verifiable source, no citation
+        citation_lookup[chunk.chunk_id] = to_citation(chunk, filing)
+        ordered.append(chunk)
+
+    ordered = ordered[:_MAX_EXTRACTION_CHUNKS]
+    if not ordered:
+        state.emit("extract_catalysts", "Extracting catalysts", "done", "no citable chunks")
+        return state
+
+    events = extract_events_batch([(c.chunk_id, c.text) for c in ordered], llm)
+
+    # A catalyst must carry the ticker of the filing it came from, NOT the
+    # candidate we happened to be researching. Stamping one ticker across every
+    # event produces an audit trail that says "PLTR" and links to an NVDA
+    # 10-Q - which a judge spots the moment they click, and which discredits
+    # every other claim on the page.
+    chunk_ticker = {c.chunk_id: c.ticker for c in ordered}
+    catalysts = []
+    by_ticker = {}
+    for event in events:
+        by_ticker.setdefault(chunk_ticker.get(event.chunk_id, "UNKNOWN"), []).append(event)
+
+    for tkr, group in by_ticker.items():
+        if tkr == "UNKNOWN":
+            continue  # unattributable evidence is dropped, not relabelled
+        catalysts.extend(events_to_catalysts(group, citation_lookup, tkr))
+
+    state.catalysts = catalysts
+    state.emit(
+        "extract_catalysts", "Extracting catalysts", "done",
+        f"{len(catalysts)} catalysts across {len(by_ticker)} companies",
+    )
+    return state
+
+
 def run_pipeline(
     thesis: str,
     as_of: date,
     llm: LLMClient,
     retriever: Retriever,
-    form_type_lookup: dict[str, str],
+    form_type_lookup: dict[str, str] | None = None,
+    universe: list | None = None,
+    factor_scores: dict | None = None,
+    on_event=None,
 ) -> TradeIdea:
     """
     This is what Phase 3's shared services/pipeline.py (3.1) calls into for
@@ -38,15 +113,18 @@ def run_pipeline(
     """
     state = ResearchState(thesis=thesis, as_of=as_of)
 
-    # TODO: wire in Matt/Nalin's universe + factor scoring here, e.g.
-    # state.universe = build_universe(criteria)
-    # state.factor_scores = score_universe(state.universe)
-    # This orchestrator assumes those are already on state by the time
-    # QuantValidator runs — until pipeline.py exists, populate them manually
-    # for local testing.
+    # Lane A/B handoff (the TODO this file carried until 3.1 landed).
+    # services/pipeline.py builds the universe and scores it, then passes both
+    # in here. QuantValidator raises rather than fabricating if they are
+    # missing, which is the behaviour we want - a validator that invents a
+    # Sharpe ratio is worse than one that refuses to run.
+    state.universe = universe
+    state.factor_scores = factor_scores
 
     planner = ResearchPlanner(llm)
-    researcher = ResearchAgent(llm, retriever, form_type_lookup)
+    # ResearchAgent takes (llm, retriever) only - it resolves form types via
+    # retriever.filing_lookup, so form_type_lookup is not threaded through here.
+    researcher = ResearchAgent(llm, retriever)
     validator = QuantValidator(llm)
     bull = BullAnalyst(llm)
     bear = BearAnalyst(llm)
@@ -54,6 +132,7 @@ def run_pipeline(
 
     state = planner.run(state)
     state = researcher.run(state)
+    state = _extract_catalysts(state, retriever, llm, universe)
     state = bull.run(state)
     state = validator.run(state)
     state = bear.run(state)

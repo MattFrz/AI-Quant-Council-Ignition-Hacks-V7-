@@ -177,13 +177,51 @@ class Pipeline:
 
         scores = self._score_universe(universe.tickers)
         if scores is None or scores.empty:
-            candidates = universe.tickers[:max_candidates]
+            ranked = list(universe.tickers)
             self._degrade("identify_candidates", "no alpha model - took first N by liquidity")
         else:
-            candidates = scores.nlargest(max_candidates).index.tolist()
+            ranked = scores.sort_values(ascending=False).index.tolist()
 
+        # Only research companies we can actually cite.
+        #
+        # The alpha model ranks across the whole universe, but the RAG index
+        # holds filings for a handful of names. Researching an unindexed
+        # candidate produces an audit trail built from some OTHER company's
+        # filings - which is worse than no audit trail, because it looks
+        # authoritative and is wrong.
+        citable = self._indexed_tickers()
+        if citable:
+            preferred = [t for t in ranked if t in citable]
+            if preferred:
+                candidates = preferred[:max_candidates]
+                self.emit(
+                    "identify_candidates", "done",
+                    f"{len(candidates)} candidates with indexed filings "
+                    f"(of {len(citable)} covered companies)",
+                )
+                return candidates
+            self._degrade(
+                "identify_candidates",
+                f"no ranked candidate has indexed filings; index covers "
+                f"{sorted(citable)}",
+            )
+
+        candidates = ranked[:max_candidates]
         self.emit("identify_candidates", "done", f"{len(candidates)} candidates")
         return candidates
+
+    def _indexed_tickers(self) -> set:
+        """Tickers with filings in the RAG index, or an empty set if none."""
+        try:
+            import json
+
+            from backend.rag.index.build_index import CHUNK_LOOKUP_PATH
+
+            lookup = json.loads(CHUNK_LOOKUP_PATH.read_text(encoding="utf-8"))
+            return {v.get("ticker") for v in lookup.values() if v.get("ticker")}
+        except Exception as exc:  # noqa: BLE001
+            log.debug("no chunk lookup available (%s)", exc)
+            return set()
 
     def _score_universe(self, tickers: List[str]) -> Optional[pd.Series]:
         """Cross-sectional alpha scores from Lane B, latest date."""
@@ -225,12 +263,24 @@ class Pipeline:
             retriever = Retriever.load_default()
 
             self.emit("retrieve_filings", "running")
+
+            # QuantValidator needs the universe and its scores on state - it
+            # calls into quant/ and refuses to run without them rather than
+            # inventing numbers. Hand over the candidates we just ranked.
+            scores = self._score_universe(candidates)
+            factor_scores = (
+                {t: float(v) for t, v in scores.items()}
+                if scores is not None and not scores.empty
+                else {t: 1.0 for t in candidates}
+            )
+
             idea = run_agents(
                 thesis=thesis,
                 as_of=as_of,
                 llm=llm,
                 retriever=retriever,
-                form_type_lookup={},
+                universe=candidates,
+                factor_scores=factor_scores,
             )
             self.emit("extract_catalysts", "done")
             self.emit("generate_bull", "done")
