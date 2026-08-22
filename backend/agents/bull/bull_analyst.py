@@ -35,6 +35,23 @@ class BullAnalyst(Agent):
         state.emit("bull_case", "Bull case complete", "done")
         return state
 
+    @staticmethod
+    def _subject_block(state) -> str:
+        """Name the company under discussion.
+
+        Without it both analysts argue the thesis in general - one run
+        produced a VRT recommendation whose bull case was about NVDA and AMD,
+        and which called Vertiv "Verint" (a different company entirely).
+        """
+        if not state.primary_ticker:
+            return ""
+        return (
+            f"SUBJECT: {state.primary_name} ({state.primary_ticker}).\n"
+            "Argue about THIS company. Use its name exactly as written above - "
+            "do not substitute a similar-sounding company. Evidence from other "
+            "companies may be cited only as context for this one.\n\n"
+        )
+
     def _format_evidence(self, state: ResearchState) -> str:
         """Evidence lines, each LABELLED WITH ITS COMPANY.
 
@@ -46,16 +63,32 @@ class BullAnalyst(Agent):
         chunks = getattr(state, "retrieved_chunks", []) or []
         if chunks:
             seen = set()
-            lines = []
+            subject, context = [], []
             for c in chunks:
                 if c.chunk_id in seen:
                     continue
                 seen.add(c.chunk_id)
-                lines.append(
-                    f"- [{c.ticker}] [{c.form_type.value if hasattr(c.form_type, 'value') else c.form_type}, "
-                    f"{c.filed_date}] {c.text[:300]} (source: {c.source_url})"
-                )
-            return chr(10).join(lines[:40])
+                form = c.form_type.value if hasattr(c.form_type, "value") else c.form_type
+                line = f"- [{c.ticker}] [{form}, {c.filed_date}] {c.text[:300]} (source: {c.source_url})"
+                if state.primary_ticker and c.ticker == state.primary_ticker:
+                    subject.append(line)
+                else:
+                    context.append(line)
+
+            # Subject evidence first and in bulk; other companies capped.
+            #
+            # A one-line "focus on VRT" instruction cannot outweigh forty lines
+            # about NVDA and AMD - the model writes about whatever it was given
+            # most of. Weighting the evidence is what actually moves it.
+            out = []
+            if subject:
+                out.append(f"EVIDENCE ON {state.primary_ticker}:")
+                out.extend(subject[:25])
+            if context:
+                out.append("")
+                out.append("CONTEXT FROM OTHER COMPANIES (supporting only):")
+                out.extend(context[:8])
+            return chr(10).join(out) if out else "(no evidence retrieved)"
 
         citations = getattr(state, "citations", [])
         if not citations:

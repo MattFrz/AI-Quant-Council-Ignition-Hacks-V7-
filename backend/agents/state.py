@@ -33,6 +33,11 @@ class ResearchState:
 
     events: list[ResearchEvent] = field(default_factory=list)
 
+    #: The company this idea is ABOUT, decided once catalysts exist so the
+    #: analysts argue the same name the card recommends.
+    primary_ticker: str | None = None
+    primary_name: str | None = None
+
     #: Optional sink so agent-level progress reaches the SSE stream.
     #: Set by services/pipeline.py; None when running an agent standalone.
     on_event: object | None = None

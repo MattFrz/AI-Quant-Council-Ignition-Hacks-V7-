@@ -37,7 +37,8 @@ class BearAnalyst(Agent):
                 "role": "user",
                 "content": (
                     f"Thesis: {state.thesis}\n\n"
-                    f"Retrieved evidence:\n{evidence_block}\n\n"
+                    + self._subject_block(state)
+                    + f"Retrieved evidence:\n{evidence_block}\n\n"
                     f"Quant results:\n{quant_block}\n\n"
                     f"Attack checklist (address each explicitly if relevant):\n{checklist_block}\n\n"
                     "Build the strongest bear case, engaging directly with "
@@ -52,6 +53,23 @@ class BearAnalyst(Agent):
         state.emit("bear_case", "Bear case complete", "done")
         return state
 
+    @staticmethod
+    def _subject_block(state) -> str:
+        """Name the company under discussion.
+
+        Without it both analysts argue the thesis in general - one run
+        produced a VRT recommendation whose bull case was about NVDA and AMD,
+        and which called Vertiv "Verint" (a different company entirely).
+        """
+        if not state.primary_ticker:
+            return ""
+        return (
+            f"SUBJECT: {state.primary_name} ({state.primary_ticker}).\n"
+            "Argue about THIS company. Use its name exactly as written above - "
+            "do not substitute a similar-sounding company. Evidence from other "
+            "companies may be cited only as context for this one.\n\n"
+        )
+
     def _format_evidence(self, state: ResearchState) -> str:
         """Evidence lines, each LABELLED WITH ITS COMPANY.
 
@@ -63,16 +81,32 @@ class BearAnalyst(Agent):
         chunks = getattr(state, "retrieved_chunks", []) or []
         if chunks:
             seen = set()
-            lines = []
+            subject, context = [], []
             for c in chunks:
                 if c.chunk_id in seen:
                     continue
                 seen.add(c.chunk_id)
-                lines.append(
-                    f"- [{c.ticker}] [{c.form_type.value if hasattr(c.form_type, 'value') else c.form_type}, "
-                    f"{c.filed_date}] {c.text[:300]} (source: {c.source_url})"
-                )
-            return chr(10).join(lines[:40])
+                form = c.form_type.value if hasattr(c.form_type, "value") else c.form_type
+                line = f"- [{c.ticker}] [{form}, {c.filed_date}] {c.text[:300]} (source: {c.source_url})"
+                if state.primary_ticker and c.ticker == state.primary_ticker:
+                    subject.append(line)
+                else:
+                    context.append(line)
+
+            # Subject evidence first and in bulk; other companies capped.
+            #
+            # A one-line "focus on VRT" instruction cannot outweigh forty lines
+            # about NVDA and AMD - the model writes about whatever it was given
+            # most of. Weighting the evidence is what actually moves it.
+            out = []
+            if subject:
+                out.append(f"EVIDENCE ON {state.primary_ticker}:")
+                out.extend(subject[:25])
+            if context:
+                out.append("")
+                out.append("CONTEXT FROM OTHER COMPANIES (supporting only):")
+                out.extend(context[:8])
+            return chr(10).join(out) if out else "(no evidence retrieved)"
 
         citations = getattr(state, "citations", [])
         if not citations:
@@ -86,10 +120,22 @@ class BearAnalyst(Agent):
             return "(quant results not yet available — QuantValidator must run before BearAnalyst)"
         bt = state.backtest_result
         risk = state.risk_metrics or {}
+
+        def num(value, pct: bool = False) -> str:
+            # Rounded before the model sees it. Raw floats get quoted back
+            # verbatim, and "a Sharpe of 1.2176655690477185" on screen reads
+            # as nobody having looked at the output.
+            if value is None:
+                return "n/a"
+            try:
+                return f"{float(value):.1%}" if pct else f"{float(value):.2f}"
+            except (TypeError, ValueError):
+                return "n/a"
+
         return (
-            f"Sharpe: {getattr(bt, 'sharpe', 'n/a')}, "
-            f"Max drawdown: {getattr(bt, 'max_drawdown', 'n/a')}, "
-            f"Win rate: {getattr(bt, 'win_rate', 'n/a')}, "
-            f"Beta: {risk.get('beta', 'n/a')}, "
-            f"VaR (95%): {risk.get('var_95', 'n/a')}"
+            f"Sharpe: {num(getattr(bt, 'sharpe', None))}, "
+            f"Max drawdown: {num(getattr(bt, 'max_drawdown', None), pct=True)}, "
+            f"Win rate: {num(getattr(bt, 'win_rate', None), pct=True)}, "
+            f"Beta: {num(risk.get('beta'))}, "
+            f"VaR (95%): {num(risk.get('var_95'), pct=True)}"
         )

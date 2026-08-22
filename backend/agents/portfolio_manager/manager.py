@@ -31,8 +31,11 @@ class PortfolioManager(Agent):
                     f"Thesis: {state.thesis}\n\n"
                     f"Bull case:\n{state.bull_case}\n\n"
                     f"Bear case:\n{state.bear_case}\n\n"
-                    f"Quant results: Sharpe={getattr(state.backtest_result, 'sharpe', 'n/a')}, "
-                    f"max_drawdown={getattr(state.backtest_result, 'max_drawdown', 'n/a')}\n\n"
+                    # Pre-format. Handing the model a raw float gets it quoted
+                    # verbatim, and "a Sharpe ratio of 1.2176655690477185"
+                    # appears on screen looking like nobody read the output.
+                    f"Quant results: Sharpe={self._fmt(getattr(state.backtest_result, 'sharpe', None))}, "
+                    f"max drawdown={self._fmt(getattr(state.backtest_result, 'max_drawdown', None), pct=True)}\n\n"
                     "Write a final rationale (3-5 sentences) synthesizing the "
                     "evidence, the debate, and the quant results into a single "
                     "recommendation. Do not invent any numbers — reference only "
@@ -88,6 +91,16 @@ class PortfolioManager(Agent):
         return trade_idea
 
     # --- helpers pulling structured values off state; no LLM involvement below ---
+
+    @staticmethod
+    def _fmt(value, pct: bool = False) -> str:
+        """Numbers the model is allowed to quote, already rounded."""
+        if value is None:
+            return "n/a"
+        try:
+            return f"{float(value):.1%}" if pct else f"{float(value):.2f}"
+        except (TypeError, ValueError):
+            return "n/a"
 
     @staticmethod
     def _clamp_alpha(value) -> float:
@@ -213,6 +226,11 @@ class PortfolioManager(Agent):
              so report that honestly rather than forcing a candidate we have
              no evidence for)
         """
+        # Decided before the analysts ran, so the card, the bull case and the
+        # bear case are all about the same company.
+        if getattr(state, "primary_ticker", None):
+            return state.primary_ticker
+
         if not state.catalysts:
             raise ValueError("Cannot determine primary ticker - no catalysts on state")
 

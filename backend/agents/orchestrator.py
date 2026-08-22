@@ -25,6 +25,23 @@ from data.schemas.trade_idea import TradeIdea
 _MAX_EXTRACTION_CHUNKS = 12
 
 
+def _company_name(ticker: str) -> str:
+    """Real company name from the cached profiles - the model must not guess.
+
+    It guessed "Verint" for VRT, which is a different company (VRNT).
+    """
+    try:
+        from data.pipelines.prices import load_profiles
+
+        profiles = load_profiles()
+        match = profiles.loc[profiles["ticker"] == ticker, "name"]
+        if len(match) and match.iloc[0]:
+            return str(match.iloc[0])
+    except Exception:  # noqa: BLE001
+        pass
+    return ticker
+
+
 def _extract_catalysts(state, retriever, llm, universe):
     """Retrieved chunks -> Catalyst objects. The section 3 audit trail.
 
@@ -96,6 +113,20 @@ def _extract_catalysts(state, retriever, llm, universe):
         catalysts.extend(events_to_catalysts(group, citation_lookup, tkr))
 
     state.catalysts = catalysts
+
+    # Decide the subject BEFORE the analysts run.
+    #
+    # Previously the manager chose it afterwards, so bull and bear argued the
+    # thesis in general - producing a "VRT" card whose bull case was about
+    # NVDA and AMD, and which called Vertiv "Verint". Naming the company up
+    # front makes both sides argue the thing we are actually recommending.
+    if catalysts:
+        counts = {}
+        for c in catalysts:
+            counts[c.ticker] = counts.get(c.ticker, 0) + 1
+        state.primary_ticker = max(counts, key=counts.get)
+        state.primary_name = _company_name(state.primary_ticker)
+
     state.emit(
         "extract_catalysts", "Extracting catalysts", "done",
         f"{len(catalysts)} catalysts across {len(by_ticker)} companies",
