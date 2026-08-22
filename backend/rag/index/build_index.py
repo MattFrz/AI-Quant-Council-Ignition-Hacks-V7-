@@ -9,8 +9,8 @@ from backend.rag.vectorstore import VectorStore
 from data.pipelines.edgar import pull_filings_for_tickers, load_cached_filing_text
 from data.sources.sec_edgar import EdgarClient
 
-INDEX_PATH = Path(settings.DATA_CACHE_DIR) / "index" / "filings.faiss"
-CHUNK_LOOKUP_PATH = Path(settings.DATA_CACHE_DIR) / "index" / "chunk_lookup.json"
+INDEX_PATH = Path(settings.data_cache_dir) / "index" / "filings.faiss"
+CHUNK_LOOKUP_PATH = Path(settings.data_cache_dir) / "index" / "chunk_lookup.json"
 
 
 def build_index(tickers: list[str], forms: list[str] = None) -> None:
@@ -20,7 +20,7 @@ def build_index(tickers: list[str], forms: list[str] = None) -> None:
     Loads cached filings, chunks them, embeds, and writes a persisted FAISS index.
     """
     forms = forms or ["10-K", "10-Q", "8-K"]
-    client = EdgarClient(user_agent=settings.SEC_USER_AGENT)
+    client = EdgarClient(user_agent=settings.sec_user_agent)
 
     filings_by_ticker = pull_filings_for_tickers(tickers, forms=forms, client=client)
 

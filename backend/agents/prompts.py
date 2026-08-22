@@ -64,6 +64,11 @@ words, with no speculation, opinion, or forward-looking interpretation added.
 table of contents, unrelated background), return an empty array. An empty \
 array is a normal, expected, and correct result for most excerpts.
 - Never fabricate a number, date, or claim that isn't in the text.
+- For "event_date": only fill this in if the excerpt explicitly states when \
+the event happened (a specific date or quarter). This is often different \
+from when the filing itself was filed — a 10-Q filed in March can describe \
+something that happened in January. If no date is stated, return null. Do \
+not infer or estimate a date.
 - Respond with ONLY the JSON array requested by the user turn. No preamble, \
 no markdown code fences, no explanation."""
 
