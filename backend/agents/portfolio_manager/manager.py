@@ -36,10 +36,14 @@ class PortfolioManager(Agent):
                     # appears on screen looking like nobody read the output.
                     f"Quant results: Sharpe={self._fmt(getattr(state.backtest_result, 'sharpe', None))}, "
                     f"max drawdown={self._fmt(getattr(state.backtest_result, 'max_drawdown', None), pct=True)}\n\n"
+                    # Tell the model what the validator concluded, or it writes
+                    # a cautious paragraph underneath a "survived" badge and
+                    # the page contradicts itself.
+                    f"Validator verdict: {self._verdict(state).value.upper()}.\n\n"
                     "Write a final rationale (3-5 sentences) synthesizing the "
                     "evidence, the debate, and the quant results into a single "
-                    "recommendation. Do not invent any numbers — reference only "
-                    "the figures given above."
+                    "recommendation CONSISTENT with that verdict. Do not invent "
+                    "any numbers - reference only the figures given above."
                 ),
             },
         ]
@@ -74,6 +78,11 @@ class PortfolioManager(Agent):
             alpha_score=self._clamp_alpha(raw_alpha),
             confidence=self._confidence_from_agreement(state),
             expected_alpha=self._expected_alpha(state, ticker),
+            # The weight the backtest actually held, not an aspiration.
+            position_size_pct=(
+                round(risk.concentration * 100.0, 1)
+                if risk is not None and risk.concentration else None
+            ),
             # Only this company's evidence. Catalysts extracted from OTHER
             # companies' filings are real, but attaching them to this idea
             # means a judge clicks a source link and lands on the wrong
@@ -198,17 +207,36 @@ class PortfolioManager(Agent):
             risk_band=RiskBand(band) if band in {b.value for b in RiskBand} else RiskBand.MEDIUM,
         )
 
-    @staticmethod
-    def _verdict(state: ResearchState) -> Verdict:
-        """Survived only if a real backtest produced a positive Sharpe.
+    #: A signal must clear both bars to count as having survived validation.
+    #: `sharpe > 0` alone was too weak - it passed strategies the PM then
+    #: described as needing "a more cautious approach", so the badge and the
+    #: narrative openly contradicted each other on screen.
+    _MIN_SHARPE = 0.5
+    _MIN_EXCESS = 0.0
 
-        Anything else is inconclusive. The validator's job is to be able to say
-        no, so this must never default to SURVIVED.
+    @classmethod
+    def _verdict(cls, state: ResearchState) -> Verdict:
+        """Survived only if the backtest beat the benchmark at a usable Sharpe.
+
+        The validator's job is to be able to say no, so this never defaults to
+        SURVIVED. Anything that clears one bar but not the other is
+        INCONCLUSIVE, which is the honest label for "promising, unproven".
         """
-        sharpe = getattr(state.backtest_result, "sharpe", None)
+        bt = state.backtest_result
+        sharpe = getattr(bt, "sharpe", None)
         if sharpe is None:
             return Verdict.INCONCLUSIVE
-        return Verdict.SURVIVED if sharpe > 0 else Verdict.REJECTED
+
+        excess = getattr(bt, "excess_return", None)
+
+        if sharpe <= 0:
+            return Verdict.REJECTED
+        if excess is not None and excess <= cls._MIN_EXCESS:
+            return Verdict.REJECTED  # did not beat simply owning the index
+        if sharpe < cls._MIN_SHARPE:
+            return Verdict.INCONCLUSIVE
+
+        return Verdict.SURVIVED
 
     def _infer_primary_ticker(self, state: ResearchState) -> str:
         """The idea must be about a RANKED candidate that we found evidence for.

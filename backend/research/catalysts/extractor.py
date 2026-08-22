@@ -155,6 +155,18 @@ def _sentences(text: str) -> list:
     out = []
     for s in raw:
         s = " ".join(s.split())
+
+        # Strip HTML-extraction furniture that prefixes a real sentence:
+        # a leading page number, "Table of contents", running headers. Left
+        # in, a quote reads "37 Table of contents We expanded our..." which
+        # looks like a scraping bug rather than a citation.
+        s = re.sub(
+            r"^\s*\d{0,4}\s*(table of contents|index to financial statements|"
+            r"form 10-[kq]|part [ivx]+|item \d+[a-z]?\.?)\s*",
+            "", s, flags=re.IGNORECASE,
+        ).strip()
+        s = re.sub(r"^\d{1,4}\s+(?=[A-Z])", "", s).strip()
+
         if len(s) < 40:
             continue
         letters = sum(c.isalpha() or c.isspace() for c in s)

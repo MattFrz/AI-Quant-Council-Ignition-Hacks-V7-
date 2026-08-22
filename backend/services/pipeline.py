@@ -126,10 +126,45 @@ class Pipeline:
         # Never let an agent mark the final row done - the pipeline owns that,
         # and the frontend closes its stream on it.
         if event.step_id == "final_recommendation":
-            event = event.model_copy(update={"status": "running"})
+            from backend.services.events import StepStatus as _SS
+            event = event.model_copy(update={"status": _SS.RUNNING})
 
         self.events.append(event)
         self._emit(event)
+
+    def _close_unreported_steps(self) -> None:
+        """Mark any checklist step that never reached a terminal state.
+
+        A row stuck on `running`, or never emitted at all, is indistinguishable
+        from a hung backend to anyone watching. Closing them as skipped is
+        honest - the work genuinely did not happen - and keeps the timeline
+        readable.
+        """
+        from backend.services.events import PIPELINE_STEPS
+
+        terminal = {"done", "failed"}
+
+        def status_of(event) -> str:
+            # model_copy() bypasses validation, so status may be a bare string
+            # rather than the enum. Tolerate both.
+            s = event.status
+            return s.value if hasattr(s, "value") else str(s)
+
+        resolved = {
+            e.step_id for e in self.events
+            if e.step_id in PIPELINE_STEPS and status_of(e) in terminal
+        }
+        started = {e.step_id for e in self.events}
+
+        for step in PIPELINE_STEPS:
+            if step in resolved:
+                continue
+            detail = (
+                "skipped - upstream stage unavailable"
+                if step not in started else
+                "ended without completing"
+            )
+            self.emit(step, "done", detail)
 
     def _degrade(self, stage: str, reason: str) -> None:
         """Record a missing capability instead of inventing output for it."""
@@ -172,6 +207,15 @@ class Pipeline:
         result.funnel_stages = list(result.funnel_stages) + self._research_funnel(
             universe, candidates, idea
         )
+
+        # Guarantee every checklist row resolves, whichever path the run took.
+        #
+        # The degraded path (agent layer unavailable) skips catalyst
+        # extraction, both analysts and the event study entirely, so those
+        # rows never receive a terminal event and the UI sits at 11/13
+        # forever. Sweeping here is path-independent: add a new branch
+        # tomorrow and the timeline still completes.
+        self._close_unreported_steps()
 
         result.events = self.events
         result.degraded = self.degraded
