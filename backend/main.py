@@ -54,18 +54,26 @@ def fixture() -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-from backend.api.routes import backtest, risk  # noqa: E402
+from backend.api.routes import (  # noqa: E402
+    backtest,
+    research,
+    risk,
+    scan,
+    stream,
+    thesis,
+)
 
 app.include_router(portfolio.router, prefix="/api")
 app.include_router(backtest.router, prefix="/api")
 app.include_router(risk.router, prefix="/api")
 
-# --- Phase 3: uncomment as each router starts returning real data ------------
-# from backend.api.routes import thesis, scan, research, stream
-# app.include_router(thesis.router,    prefix="/api")
-# app.include_router(scan.router,      prefix="/api")
-# app.include_router(research.router,  prefix="/api")
-# app.include_router(stream.router,    prefix="/api")
+# Phase 3 (3.2 / 3.4): the research chain. /api/research starts a background
+# job and returns immediately; /api/stream/{job_id} is the SSE timeline that
+# Cecile's stream.ts consumes.
+app.include_router(thesis.router, prefix="/api")
+app.include_router(scan.router, prefix="/api")
+app.include_router(research.router, prefix="/api")
+app.include_router(stream.router, prefix="/api")
 
 
 @app.on_event("startup")
