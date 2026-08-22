@@ -12,6 +12,14 @@ MAX_CHUNK_TOKENS = 500
 OVERLAP_TOKENS = 50
 _APPROX_CHARS_PER_TOKEN = 4
 
+# Table-of-contents "Item 7. ..." lines match the same regex as real
+# section headers but sit only a few dozen characters apart from each
+# other. Real sections are, at minimum, a few hundred characters of body
+# text. Anything shorter than this is almost certainly a TOC entry, not
+# a real section, and gets folded into the following section instead of
+# becoming its own near-empty chunk.
+_MIN_SECTION_CHARS = 300
+
 
 def chunk_filing(filing: Filing, raw_text: str) -> list[FilingChunk]:
     """
@@ -46,14 +54,47 @@ def _split_by_sections(raw_text: str) -> list[tuple[str, int, str]]:
     if not matches:
         return [("FULL_DOCUMENT", 0, raw_text)]
 
-    sections = []
+    raw_sections = []
     for i, match in enumerate(matches):
         start = match.start()
         end = matches[i + 1].start() if i + 1 < len(matches) else len(raw_text)
         header = match.group(1).strip()[:80]
-        sections.append((header, start, raw_text[start:end]))
+        raw_sections.append((header, start, raw_text[start:end]))
 
-    return sections
+    return _merge_short_sections(raw_sections)
+
+
+def _merge_short_sections(
+    raw_sections: list[tuple[str, int, str]]
+) -> list[tuple[str, int, str]]:
+    if not raw_sections:
+        return raw_sections
+
+    merged: list[tuple[str, int, str]] = []
+    pending_label = None
+    pending_offset = None
+    pending_text_parts: list[str] = []
+
+    def flush() -> None:
+        nonlocal pending_label, pending_offset, pending_text_parts
+        if pending_text_parts:
+            merged.append((pending_label, pending_offset, "".join(pending_text_parts)))
+        pending_label, pending_offset, pending_text_parts = None, None, []
+
+    for label, offset, text in raw_sections:
+        if len(text) >= _MIN_SECTION_CHARS:
+            # A real section on its own — flush any accumulated TOC junk
+            # first, then keep this section standalone with its own label.
+            flush()
+            merged.append((label, offset, text))
+            continue
+
+        if pending_label is None:
+            pending_label, pending_offset = label, offset
+        pending_text_parts.append(text)
+
+    flush()
+    return merged
 
 
 def split_section(

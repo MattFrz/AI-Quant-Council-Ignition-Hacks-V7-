@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+from datetime import date, timedelta
 from pathlib import Path
 
 from backend.config import settings
@@ -12,15 +13,25 @@ from data.sources.sec_edgar import EdgarClient
 INDEX_PATH = Path(settings.data_cache_dir) / "index" / "filings.faiss"
 CHUNK_LOOKUP_PATH = Path(settings.data_cache_dir) / "index" / "chunk_lookup.json"
 
+# How far back to pull filings by default. Tune this to whatever window
+# your thesis/demo actually needs — leaving it unbounded is what produced
+# 164k chunks off three tickers.
+DEFAULT_LOOKBACK_DAYS = 730
 
-def build_index(tickers: list[str], forms: list[str] = None) -> None:
+
+def build_index(
+    tickers: list[str],
+    forms: list[str] = None,
+    since: date | None = None,
+) -> None:
     """
     Run once as: python -m backend.rag.index.build_index
     """
     forms = forms or ["10-K", "10-Q", "8-K"]
+    since = since or (date.today() - timedelta(days=DEFAULT_LOOKBACK_DAYS))
     client = EdgarClient(user_agent=settings.sec_user_agent)
 
-    filings_by_ticker = pull_filings_for_tickers(tickers, forms=forms, client=client)
+    filings_by_ticker = pull_filings_for_tickers(tickers, forms=forms, client=client, since=since)
 
     all_chunks = []
     for ticker, filings in filings_by_ticker.items():
@@ -28,7 +39,7 @@ def build_index(tickers: list[str], forms: list[str] = None) -> None:
             raw_text = load_cached_filing_text(ticker, filing.accession_no)
             all_chunks.extend(chunk_filing(filing, raw_text))
 
-    print(f"Chunked {len(all_chunks)} pieces")
+    print(f"Chunked {len(all_chunks)} pieces from {sum(len(f) for f in filings_by_ticker.values())} filings")
 
     cache = EmbeddingCache()
     embeddings = cache.get_or_embed(all_chunks)

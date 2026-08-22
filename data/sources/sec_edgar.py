@@ -1,7 +1,10 @@
 from __future__ import annotations
+import re
 import time
 import requests
 from datetime import date
+
+from bs4 import BeautifulSoup
 
 EDGAR_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 EDGAR_FULLTEXT_SEARCH_URL = "https://efts.sec.gov/LATEST/search-index?q={query}&forms={forms}"
@@ -9,6 +12,8 @@ EDGAR_ARCHIVES_BASE = "https://www.sec.gov/Archives/edgar/data"
 TICKER_CIK_MAP_URL = "https://www.sec.gov/files/company_tickers.json"
 
 MAX_REQUESTS_PER_SECOND = 8  # stay under SEC's 10 req/sec limit with margin
+
+_WS_RE = re.compile(r"[ \t]+")
 
 
 class EdgarClient:
@@ -71,10 +76,20 @@ class EdgarClient:
         """
         accession must be passed WITHOUT dashes for the archive path
         (EDGAR submissions.json gives it with dashes, e.g. 0000320193-24-000123).
+
+        Returns CLEANED TEXT, not raw HTML. Modern 10-K/10-Q primary
+        documents are inline XBRL — every financial figure is individually
+        tag-wrapped on top of normal HTML — and can be 3-8x larger as raw
+        markup than as prose. Leaving the markup in blows up both chunk
+        count and disk usage, and breaks section-header matching downstream
+        since "Item 7" is frequently split across tags. Strip it here so
+        everything downstream (caching, chunking, embedding) only ever
+        sees plain text.
         """
         accession_nodash = accession.replace("-", "")
         url = f"{EDGAR_ARCHIVES_BASE}/{int(cik)}/{accession_nodash}/{doc_filename}"
-        return self._rate_limited_get(url).text
+        response = self._rate_limited_get(url)
+        return _clean_filing_html(response.text)
 
     def list_recent_filings(
         self, ticker: str, forms: list[str], since: date | None = None
@@ -103,3 +118,20 @@ class EdgarClient:
                 "cik": cik,
             })
         return results
+
+
+def _clean_filing_html(raw_html: str) -> str:
+    """
+    Strip scripts/styles/tags (including inline-XBRL wrapper tags, which
+    BeautifulSoup treats like any other unknown tag and discards while
+    keeping their text content) and collapse the whitespace mess that
+    falls out of table-heavy filing HTML.
+    """
+    soup = BeautifulSoup(raw_html, "html.parser")
+    for tag in soup(["script", "style"]):
+        tag.decompose()
+
+    text = soup.get_text(separator="\n")
+    lines = [_WS_RE.sub(" ", line).strip() for line in text.splitlines()]
+    lines = [line for line in lines if line]
+    return "\n".join(lines)
