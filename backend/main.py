@@ -13,6 +13,7 @@ import json
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.api.routes import portfolio
 from backend.config import settings
 from backend.core.logging import get_logger
 
@@ -26,7 +27,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -53,18 +54,19 @@ def fixture() -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+app.include_router(portfolio.router, prefix="/api")
+
 # --- Phase 3: uncomment as each router starts returning real data ------------
-# from backend.api.routes import thesis, scan, research, backtest, risk, portfolio, stream
+# from backend.api.routes import thesis, scan, research, backtest, risk, stream
 # app.include_router(thesis.router,    prefix="/api")
 # app.include_router(scan.router,      prefix="/api")
 # app.include_router(research.router,  prefix="/api")
 # app.include_router(backtest.router,  prefix="/api")
 # app.include_router(risk.router,      prefix="/api")
-# app.include_router(portfolio.router, prefix="/api")
 # app.include_router(stream.router,    prefix="/api")
 
 
 @app.on_event("startup")
 def _startup() -> None:
-    log.info("Autonomous Alpha backend up - model=%s offline=%s",
-             settings.llm_model, settings.offline_mode)
+    log.info("Autonomous Alpha backend up - model=%s offline=%s origins=%s",
+              settings.llm_model, settings.offline_mode, settings.cors_origins)

@@ -53,6 +53,16 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     offline_mode: bool = False
     frontend_origin: str = "http://localhost:3000"
+    # Comma-separated extra origins allowed to call this API - e.g. the live
+    # Base44 app URL. Kept separate from frontend_origin so nothing that
+    # already reads that field breaks. Set in .env: EXTRA_CORS_ORIGINS=...
+    extra_cors_origins: str = ""
+
+    @property
+    def cors_origins(self) -> list[str]:
+        origins = [self.frontend_origin]
+        origins += [o.strip() for o in self.extra_cors_origins.split(",") if o.strip()]
+        return origins
 
     # ---- Derived paths -----------------------------------------------------
     @property
