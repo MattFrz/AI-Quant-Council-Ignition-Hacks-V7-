@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
-from data.schemas.filing import FilingChunk
+from data.schemas.filing import FilingChunk, Filing
 
 
 @dataclass
@@ -11,34 +11,35 @@ class Citation:
     source_url: str
     filed_date: date
     form_type: str
-    section: str
+    section: str | None
 
 
-def to_citation(chunk: FilingChunk, form_type: str) -> Citation:
+def to_citation(chunk: FilingChunk, filing: Filing) -> Citation:
     """
-    Thin formatting layer. Field names here map 1:1 onto what Catalyst
-    (schema 1.5) expects for source_url / source_type / event_date, so C15
-    can build a Catalyst directly from this with no reshaping.
-
-    form_type isn't on FilingChunk itself (it's on the parent Filing) —
-    pass it through from wherever you have the Filing object, or look it up
-    via chunk.parent (the accession number) against your filings cache/index.
+    filed_date and source_url come from the parent Filing (chunk doesn't
+    carry either). form_type technically lives on both Filing and
+    FilingChunk — read it off the chunk since that's the object callers
+    already have in hand.
     """
+    form_type_value = chunk.form_type.value if hasattr(chunk.form_type, "value") else chunk.form_type
     return Citation(
         text=chunk.text,
-        source_url=chunk.source_url,
-        filed_date=chunk.filed_date,
-        form_type=form_type,
+        source_url=filing.url,
+        filed_date=filing.filed_date,
+        form_type=form_type_value,
         section=chunk.section,
     )
 
 
-def to_citations(chunks: list[FilingChunk], form_type_lookup: dict[str, str]) -> list[Citation]:
+def to_citations(chunks: list[FilingChunk], filing_lookup: dict[str, Filing]) -> list[Citation]:
     """
-    Batch version. form_type_lookup maps accession (chunk.parent) -> form_type,
-    e.g. built once from your filings cache: {f.accession: f.form_type for f in filings}
+    filing_lookup: {accession_no: Filing} — pass retriever.filing_lookup
+    directly from the call site (e.g. research_agent.py).
     """
-    return [
-        to_citation(chunk, form_type_lookup.get(chunk.parent, "UNKNOWN"))
-        for chunk in chunks
-    ]
+    citations = []
+    for chunk in chunks:
+        filing = filing_lookup.get(chunk.accession_no)
+        if filing is None:
+            continue  # same rule as retriever.py: no verifiable source, no citation
+        citations.append(to_citation(chunk, filing))
+    return citations

@@ -14,10 +14,9 @@ class ResearchAgent(Agent):
     accumulates retrieved chunks + citations onto ResearchState.
     """
 
-    def __init__(self, llm_client: LLMClient, retriever: Retriever, form_type_lookup: dict[str, str]):
+    def __init__(self, llm_client: LLMClient, retriever: Retriever):
         super().__init__(llm_client)
         self.retriever = retriever
-        self.form_type_lookup = form_type_lookup  # {accession: form_type}, built from filings cache
 
     def run(self, state: ResearchState) -> ResearchState:
         plan = getattr(state, "plan", None)
@@ -30,7 +29,7 @@ class ResearchAgent(Agent):
             results = self.retriever.retrieve(step.query, as_of=state.as_of, k=10)
             state.retrieved_chunks.extend(results)
 
-            citations = to_citations(results, self.form_type_lookup)
+            citations = to_citations(results, self.retriever.filing_lookup)
             state.citations = getattr(state, "citations", []) + citations
 
             state.emit(step.id, f"{step.label} — found {len(results)} sources", "done")
