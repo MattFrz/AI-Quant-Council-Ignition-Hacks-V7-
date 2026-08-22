@@ -90,6 +90,47 @@ class Pipeline:
         self._emit(event)
         log.info("[%s] %s%s", status, event.label, f" - {detail}" if detail else "")
 
+    #: Agent step_ids -> the checklist row they belong under.
+    #:
+    #: Agents emit their own ids (plan, bull_case, quant_validation, synthesis)
+    #: which are not in PIPELINE_STEPS, so a UI rendering only the checklist
+    #: ignores them and the row keeps spinning through 40 seconds of real work.
+    #: Remapping means the checklist advances on its own with no frontend
+    #: change, and the agent's detail text rides along.
+    _AGENT_STEP_MAP = {
+        "plan": "retrieve_filings",
+        "bull_case": "generate_bull",
+        "bear_case": "generate_bear",
+        "quant_validation": "backtest_signal",
+        "synthesis": "final_recommendation",
+    }
+
+    def _forward_agent_event(self, event: ResearchEvent) -> None:
+        """Relay an agent's event to the stream, mapped onto a checklist row."""
+        from backend.services.events import PIPELINE_STEPS, STEP_LABELS
+
+        step_id = event.step_id
+        if step_id not in PIPELINE_STEPS:
+            # Retrieval sub-steps are named step_1, step_2 ... by the planner.
+            mapped = self._AGENT_STEP_MAP.get(
+                step_id, "retrieve_filings" if step_id.startswith("step_") else None
+            )
+            if mapped is None:
+                return  # unknown agent chatter, nothing to show
+            event = event.model_copy(update={
+                "step_id": mapped,
+                "label": STEP_LABELS.get(mapped, mapped),
+                "detail": event.detail or event.label,
+            })
+
+        # Never let an agent mark the final row done - the pipeline owns that,
+        # and the frontend closes its stream on it.
+        if event.step_id == "final_recommendation":
+            event = event.model_copy(update={"status": "running"})
+
+        self.events.append(event)
+        self._emit(event)
+
     def _degrade(self, stage: str, reason: str) -> None:
         """Record a missing capability instead of inventing output for it."""
         msg = f"{stage}: {reason}"
@@ -360,6 +401,9 @@ class Pipeline:
                 retriever=retriever,
                 universe=candidates,
                 factor_scores=factor_scores,
+                # Forward agent-level progress to the live stream so the ~40s
+                # research phase shows work instead of one spinning row.
+                on_event=self._forward_agent_event,
             )
 
             # Close retrieve_filings. Emitting `running` without a matching

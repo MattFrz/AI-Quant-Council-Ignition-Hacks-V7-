@@ -71,7 +71,11 @@ class PortfolioManager(Agent):
             alpha_score=self._clamp_alpha(raw_alpha),
             confidence=self._confidence_from_agreement(state),
             expected_alpha=self._expected_alpha(state, ticker),
-            catalysts=state.catalysts,
+            # Only this company's evidence. Catalysts extracted from OTHER
+            # companies' filings are real, but attaching them to this idea
+            # means a judge clicks a source link and lands on the wrong
+            # company - which discredits every other citation on the page.
+            catalysts=[c for c in state.catalysts if c.ticker == ticker],
             backtest=state.backtest_result,
             risk=risk,
             validator_verdict=self._verdict(state),
@@ -212,26 +216,30 @@ class PortfolioManager(Agent):
         if not state.catalysts:
             raise ValueError("Cannot determine primary ticker - no catalysts on state")
 
-        with_evidence = {c.ticker for c in state.catalysts}
-        scores = state.factor_scores or {}
-
-        ranked = [t for t in scores if t in with_evidence]
-        if ranked:
-            def score_of(t):
-                entry = scores.get(t)
-                if isinstance(entry, dict):
-                    return entry.get("alpha_score") or 0.0
-                try:
-                    return float(entry)
-                except (TypeError, ValueError):
-                    return 0.0
-
-            return max(ranked, key=score_of)
-
         counts = {}
         for c in state.catalysts:
             counts[c.ticker] = counts.get(c.ticker, 0) + 1
-        return max(counts, key=counts.get)
+
+        scores = state.factor_scores or {}
+
+        def score_of(t):
+            entry = scores.get(t)
+            if isinstance(entry, dict):
+                return entry.get("alpha_score") or 0.0
+            try:
+                return float(entry)
+            except (TypeError, ValueError):
+                return 0.0
+
+        # Evidence first, alpha second.
+        #
+        # Ranking by score alone picked the top-scoring candidate even when the
+        # retriever had found almost nothing about it - producing a card that
+        # said AMD while every citation pointed at Vertiv's 10-K. An idea we
+        # cannot evidence is not an idea we can defend, so the candidate with
+        # the most catalysts wins, and alpha only breaks ties.
+        ranked = [t for t in counts if t in scores] or list(counts)
+        return max(ranked, key=lambda t: (counts.get(t, 0), score_of(t)))
 
     def _infer_direction(self, state: ResearchState) -> str:
         # naive default; replace with real logic once factor_scores/backtest

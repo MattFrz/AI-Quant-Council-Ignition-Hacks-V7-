@@ -60,6 +60,18 @@ def _extract_catalysts(state, retriever, llm, universe):
         citation_lookup[chunk.chunk_id] = to_citation(chunk, filing)
         ordered.append(chunk)
 
+    # Extract from the CANDIDATES first.
+    #
+    # Retrieval queries the thesis, not the shortlist, so it happily returns
+    # chunks about companies the alpha model never ranked. Extracting from
+    # those wastes LLM calls and produces catalysts that get filtered out
+    # later - one run found 22 catalysts across 2 companies and kept 1,
+    # because the evidence was about a name that was not a candidate.
+    if universe:
+        preferred = [c for c in ordered if c.ticker in set(universe)]
+        if preferred:
+            ordered = preferred + [c for c in ordered if c.ticker not in set(universe)]
+
     ordered = ordered[:_MAX_EXTRACTION_CHUNKS]
     if not ordered:
         state.emit("extract_catalysts", "Extracting catalysts", "done", "no citable chunks")
@@ -111,7 +123,7 @@ def run_pipeline(
     state by Lane A/B code upstream of this call — see the TODO below for
     where that handoff needs to be wired once pipeline.py exists.
     """
-    state = ResearchState(thesis=thesis, as_of=as_of)
+    state = ResearchState(thesis=thesis, as_of=as_of, on_event=on_event)
 
     # Lane A/B handoff (the TODO this file carried until 3.1 landed).
     # services/pipeline.py builds the universe and scores it, then passes both

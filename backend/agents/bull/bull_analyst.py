@@ -36,11 +36,31 @@ class BullAnalyst(Agent):
         return state
 
     def _format_evidence(self, state: ResearchState) -> str:
+        """Evidence lines, each LABELLED WITH ITS COMPANY.
+
+        Without the ticker the model cannot tell whose filing it is reading,
+        so it attributes freely - we saw it write a paragraph about NVIDIA and
+        cite AMD's 10-K. The ticker is the fix: it is on every chunk, it just
+        was not being passed through.
+        """
+        chunks = getattr(state, "retrieved_chunks", []) or []
+        if chunks:
+            seen = set()
+            lines = []
+            for c in chunks:
+                if c.chunk_id in seen:
+                    continue
+                seen.add(c.chunk_id)
+                lines.append(
+                    f"- [{c.ticker}] [{c.form_type.value if hasattr(c.form_type, 'value') else c.form_type}, "
+                    f"{c.filed_date}] {c.text[:300]} (source: {c.source_url})"
+                )
+            return chr(10).join(lines[:40])
+
         citations = getattr(state, "citations", [])
         if not citations:
             return "(no evidence retrieved)"
-
-        lines = []
-        for c in citations:
-            lines.append(f"- [{c.form_type}, {c.filed_date}] {c.text[:300]} (source: {c.source_url})")
-        return "\n".join(lines)
+        return chr(10).join(
+            f"- [{c.form_type}, {c.filed_date}] {c.text[:300]} (source: {c.source_url})"
+            for c in citations
+        )

@@ -33,6 +33,10 @@ class ResearchState:
 
     events: list[ResearchEvent] = field(default_factory=list)
 
+    #: Optional sink so agent-level progress reaches the SSE stream.
+    #: Set by services/pipeline.py; None when running an agent standalone.
+    on_event: object | None = None
+
     def emit(self, step_id: str, label: str, status: str, detail: str | None = None) -> None:
         """
         Appends a ResearchEvent to the running timeline. This is what
@@ -49,10 +53,23 @@ class ResearchState:
         "error" are not members. Mapping here keeps all six agent call sites
         and Cecile's TypeScript mirror unchanged.
         """
-        self.events.append(ResearchEvent(
+        event = ResearchEvent(
             step_id=step_id,
             label=label,
             status=_STATUS_ALIASES.get(status, status),
             detail=detail,
             timestamp=datetime.utcnow(),
-        ))
+        )
+        self.events.append(event)
+
+        # Forward to the live stream if the pipeline attached a sink.
+        #
+        # Without this the agent chain is a ~40 second silence in the middle
+        # of a run: the UI shows "Retrieved 10-K / 10-Q filings" spinning
+        # while planning, retrieval, extraction and both analysts all happen
+        # invisibly. Users read that as a hang, not as work.
+        if self.on_event is not None:
+            try:
+                self.on_event(event)
+            except Exception:  # noqa: BLE001 - a broken sink must not stop research
+                pass
