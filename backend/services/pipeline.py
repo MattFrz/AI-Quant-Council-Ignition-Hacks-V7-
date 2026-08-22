@@ -72,6 +72,7 @@ class Pipeline:
     def __init__(self, emit: Optional[EmitFn] = None) -> None:
         self._emit = emit or (lambda e: None)
         self.events: List[ResearchEvent] = []
+        self.event_study = None
         self.degraded: List[str] = []
 
     # ---------------------------------------------------------------- events
@@ -283,8 +284,15 @@ class Pipeline:
                 factor_scores=factor_scores,
             )
             self.emit("extract_catalysts", "done")
+
+            # Transcripts were never ingested (Lane C stopped at filings), so
+            # this step is reported as skipped rather than silently omitted -
+            # a checklist row that never resolves reads as a hung system.
+            self.emit("analyze_transcripts", "done", "skipped - filings only, no transcript corpus")
+
             self.emit("generate_bull", "done")
             self.emit("generate_bear", "done")
+            self._run_event_study(idea)
             self.emit("backtest_signal", "done")
             self.emit("calculate_risk", "done")
             return idea
@@ -293,6 +301,63 @@ class Pipeline:
             self._degrade("research_and_debate", str(exc)[:160])
             self.emit("retrieve_filings", "failed", str(exc)[:80])
             return self._quant_only_idea(as_of, universe, candidates)
+
+    def _run_event_study(self, idea) -> None:
+        """Do the catalysts we found historically precede abnormal returns?
+
+        This is the statistical evidence behind section 3's claim that "these
+        events historically preceded positive earnings revisions". Without it
+        the audit trail is a list of quotes; with it, the quotes have a
+        measured forward return attached.
+
+        Never fatal: a thin event sample is a real and honest outcome, and the
+        study reports it as not significant rather than the pipeline failing.
+        """
+        self.emit("run_event_study", "running")
+        try:
+            from quant.eventstudy.study import event_study, events_from_catalysts
+            from quant.factors.base import Panel
+
+            if not idea or not idea.catalysts:
+                self.emit("run_event_study", "done", "no catalysts to study")
+                return
+
+            events = events_from_catalysts(idea.catalysts)
+
+            # Collapse to one row per (ticker, date).
+            #
+            # Twenty catalysts pulled from the SAME filing are one event, not
+            # twenty. Leaving them duplicated makes every path in the study
+            # identical, the standard error collapse to zero, and the t-stat
+            # explode - we measured t = 2.2e16 before this line existed. A
+            # number like that on screen discredits everything next to it.
+            before = len(events)
+            events = events.drop_duplicates(subset=["ticker", "event_date"])
+            if before != len(events):
+                log.info("event study: %d catalysts -> %d independent events",
+                         before, len(events))
+
+            # Load the WHOLE universe, not just the event tickers.
+            #
+            # abnormal_returns() subtracts the equal-weighted mean of the panel
+            # as its market proxy. Passing only NVDA makes NVDA the market, so
+            # every abnormal return is exactly zero and the t-stat is nan - a
+            # result that looks like "no effect" but is really "no benchmark".
+            wide = load_wide()
+            panel = Panel.from_wide(wide)
+
+            result = event_study(panel, events, label="extracted catalysts")
+
+            self.event_study = result
+            sig = "significant" if result.is_significant() else "not significant"
+            self.emit(
+                "run_event_study", "done",
+                f"{result.n_events} events, CAR {result.car_post_event:+.2%} "
+                f"(t={result.t_post_event:.2f}, {sig})",
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._degrade("event_study", str(exc)[:120])
+            self.emit("run_event_study", "done", f"skipped - {str(exc)[:60]}")
 
     def _quant_only_idea(
         self,
