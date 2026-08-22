@@ -17,7 +17,7 @@ invented. Here that boundary is structural rather than a matter of prompting.
 | Write the final rationale | Compute risk, VaR and exposure |
 
 No agent computes a statistic. The quant validator calls into `quant/` and
-reports what came back — `backend/agents/quant_validator/validator.py` exists to
+reports what came back, `backend/agents/quant_validator/validator.py` exists to
 make that boundary a file rather than a promise.
 
 ## The pipeline
@@ -66,7 +66,7 @@ the data engineer, the quant, the ML engineer and the product lead never had to
 wait on each other's internals. The parts fit on first contact.
 
 **The frontend is contract-driven.** FastAPI publishes the same schemas as an
-OpenAPI spec at `/openapi.json` — 14 endpoints, 36 typed schemas. The Base44
+OpenAPI spec at `/openapi.json`, 14 endpoints, 36 typed schemas. The Base44
 dashboard is built directly against that spec, so a no-code UI stayed in lockstep
 with a 14,000-line quantitative backend without a single coordination meeting.
 The contract freeze is what made a no-code frontend viable against an engine
@@ -78,22 +78,22 @@ Look-ahead bias never raises an exception. It just makes every number better
 than it should be, until someone asks how it was handled. Four guards, each with
 a regression test:
 
-**Structural truncation** — `quant/factors/base.py`. A factor never receives the
+**Structural truncation**, `quant/factors/base.py`. A factor never receives the
 full history. `Factor.compute()` slices the panel to the decision date before
-`_compute()` sees it, so a careless factor *cannot* read the future — it is not
+`_compute()` sees it, so a careless factor *cannot* read the future, it is not
 in the object it was handed.
 
-**report_date, not period_end** — `data/pipelines/fundamentals.py`. Fundamentals
+**report_date, not period_end**, `data/pipelines/fundamentals.py`. Fundamentals
 join on the date a figure became public, never the quarter it describes.
 Restatements de-duplicate to the first filing, because that is the number the
 market actually traded on. AAPL reports 2007 periods that were not filed until
 2009; joining on the period would hand the backtest two years of hindsight.
 
-**Train/test embargo** — `quant/alpha/weighting.py`. The 21-day forward return of
+**Train/test embargo**, `quant/alpha/weighting.py`. The 21-day forward return of
 the last training date would otherwise reach into the test window. The split
 drops it, so fitted weights never see the period they are judged on.
 
-**Retrieval time filter** — `backend/rag/retrieval/retriever.py`. Top-k with a
+**Retrieval time filter**, `backend/rag/retrieval/retriever.py`. Top-k with a
 hard `filed_date <= as_of` filter, so an agent testing a historical date cannot
 read a document that did not exist yet.
 
@@ -105,7 +105,7 @@ identical.
 
 | Source | What | Where |
 |---|---|---|
-| Yahoo Finance | Daily OHLCV, 80 US large caps, 2015–2024 | `data/pipelines/prices.py` |
+| Yahoo Finance | Daily OHLCV, 80 US large caps, 2015-2024 | `data/pipelines/prices.py` |
 | SEC EDGAR companyfacts | 5,629 point-in-time quarters, 79 tickers, back to 2006 | `data/pipelines/fundamentals.py` |
 | SEC EDGAR documents | 10-K / 10-Q / 8-K text for retrieval | `data/pipelines/edgar.py` |
 
@@ -113,30 +113,30 @@ Everything is cached to disk. No demo path depends on a live API call.
 
 ## The quantitative engine
 
-**Factors** (`quant/factors/`) — market (12-1 momentum, realised volatility,
+**Factors** (`quant/factors/`), market (12-1 momentum, realised volatility,
 volume trend, relative strength), fundamental (growth, margins, FCF yield, ROIC,
 leverage, valuation), event (standardised unexpected earnings, post-earnings
 drift, acceleration), and NLP (catalyst sentiment, guidance changes).
 
-Earnings surprise is measured as SUE — a seasonal-random-walk expectation scaled
-by the company's own history of surprises — because no free source provides
+Earnings surprise is measured as SUE, a seasonal-random-walk expectation scaled
+by the company's own history of surprises, because no free source provides
 analyst estimates. It is named as SUE rather than dressed up as a consensus
 surprise.
 
-**Signals** (`quant/signals/`) — winsorize, z-score, cross-sectional ranking,
+**Signals** (`quant/signals/`), winsorize, z-score, cross-sectional ranking,
 optional sector neutralisation. The model is cross-sectional: the question is
 never "is this stock's momentum high" but "is it high against every other name
 in the universe today".
 
-**Alpha** (`quant/alpha/`) — information coefficient, rank-IC, t-statistics and
+**Alpha** (`quant/alpha/`), information coefficient, rank-IC, t-statistics and
 signal decay were built *before* the factors they judge, so every factor has to
 earn its place with a number. Weights are IC-fitted on the training window only.
 
-**Backtest** (`quant/backtest/`) — event-driven, with commission, participation-
+**Backtest** (`quant/backtest/`), event-driven, with commission, participation-
 rate slippage, position limits and a hard cap on trading more than 5% of a
 name's average daily volume.
 
-**Execution** (`cpp/`) — a price-level order book and a Nasdaq ITCH parser in
+**Execution** (`cpp/`), a price-level order book and a Nasdaq ITCH parser in
 C++, exposed through pybind11, so slippage can be derived from book mechanics
 rather than a basis-point assumption. Routed behind a config flag with the pure
 Python path still working: a compiler that fails on the demo laptop degrades to

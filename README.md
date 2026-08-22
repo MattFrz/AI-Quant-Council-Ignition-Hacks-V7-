@@ -10,14 +10,14 @@ evidence and is allowed to say no.
 
 Give it a thesis in plain English. It decomposes that into measurable criteria,
 scans the universe, retrieves the actual SEC filings, extracts catalysts with
-verbatim quotes and clickable sources, argues both sides — then runs the whole
+verbatim quotes and clickable sources, argues both sides, then runs the whole
 thing through a backtest that is allowed to reject it.
 
 **The LLM proposes. The quantitative engine decides.** The model never emits a
 Sharpe ratio, an alpha score, a factor weight or a VaR.
 
 Our own strategy returns **+9.78% annualised excess against SPY at Sharpe 1.03**
-— and an out-of-sample information coefficient of 0.02, t = 0.67, which is **not
+,  and an out-of-sample information coefficient of 0.02, t = 0.67, which is **not
 statistically significant**. Every backtest response says so in its own payload.
 We report that because it is the entire product: a tool that only ever agrees
 with you is the thing this replaces.
@@ -28,7 +28,7 @@ with you is the thing this replaces.
 | [Architecture](docs/architecture.md) | The pipeline, the contract, the look-ahead defence |
 | [Who built what](docs/team_ownership.md) | Four lanes, four owners |
 
-**IgnitionHacks V7 · Fintech** — Matt, Nalin, Zain, Cecile
+**IgnitionHacks V7 · Fintech**, Matt, Nalin, Zain, Cecile
 
 ---
 

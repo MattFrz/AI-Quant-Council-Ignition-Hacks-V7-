@@ -1,136 +1,148 @@
-# AI Quant Council — submission
+# AI Quant Council
 
 **Track: Fintech**
 
-## The one-liner
+## The short version
 
-Ask any AI chatbot whether a stock is a good buy and it will hand you a Sharpe
-ratio. That number is invented. We built the layer the entire AI-finance
-category is missing: a quantitative engine that tests the AI's idea against
-historical evidence and is allowed to say **no**.
+Ask ChatGPT if a stock is a good buy and it will give you a Sharpe ratio. It
+made that number up. Nothing in the system calculated it.
+
+We built the part that actually checks. You give it an investment thesis, it
+does the research, and then a quantitative engine tests whether the idea holds
+up against historical data. If it doesn't hold up, the system says so.
 
 ## The problem
 
-AI stock advice is now everywhere, and it is confidently wrong. A language model
-asked for a risk-adjusted return will produce one — fluent, specific, and
-fabricated, because nothing in the system ever computed it. Retail investors act
-on that output. There is no falsification step anywhere in the category.
+AI stock advice is everywhere now and most of it is confidently wrong. Ask a
+language model for a risk adjusted return and you get one. It sounds specific,
+it sounds authoritative, and it is fiction, because no part of the process ever
+computed anything.
 
-The failure is structural, not a prompting problem. If the model is the source
-of truth, there is nothing to check it against.
+People act on this. They put money behind it.
+
+The reason it happens isn't bad prompting. It's that the model is the only thing
+in the loop, so there is nothing to check it against.
 
 ## What we built
 
-Give the system an investment thesis in plain English:
+You type a thesis in plain English:
 
-> *"Find companies benefiting from the AI data-center buildout that the market
-> may be underpricing."*
+> "Find companies benefiting from the AI data-center buildout that the market
+> may be underpricing."
 
-It decomposes the thesis into measurable screening criteria, scans a universe of
-US equities, retrieves the actual SEC filings for the survivors, extracts
-catalysts with verbatim quotes and clickable source links, builds bull and bear
-cases from that evidence, then hands the whole thing to a quantitative engine
-that scores it, backtests it with realistic costs, measures the risk — and
-rejects it if it does not survive.
+The system breaks that into measurable screening criteria, scans a universe of
+US stocks, pulls the actual SEC filings for the ones that survive, and extracts
+catalysts with real quotes and working links back to the source document. Two
+agents then argue it out, one building the case for, one attacking it using the
+quant results.
 
-**The language model proposes. The quantitative engine decides.**
+Then the quantitative engine scores it, backtests it with real trading costs,
+measures the risk, and decides whether the idea survives.
 
-That boundary is structural. The model never emits a Sharpe ratio, an alpha
-score, a factor weight or a VaR. Those come from 14,000 lines of Python and
-1,500 lines of C++ that the model cannot reach into. The quant validator agent
-exists specifically to call that engine and report what came back, never to
-estimate a number itself.
+The language model proposes. The quant engine decides.
 
-## Why this is different
+That split is enforced in code, not in a prompt. The model cannot produce a
+Sharpe ratio, an alpha score, a factor weight or a VaR. Those come out of 14,000
+lines of Python and 1,500 lines of C++ that it has no access to. There is an
+agent whose entire job is to call that engine and report what came back, and it
+is not allowed to estimate anything itself.
 
-Three things no chatbot does:
+## Three things a chatbot won't do
 
-**Every claim carries a source.** A catalyst without a resolvable URL fails
-schema validation and cannot ship. Click one in the demo and you land on the
-actual 10-Q. The quote is extracted verbatim from the retrieved document — the
-model never writes it.
+**Every claim has a source you can click.** A catalyst with no working URL fails
+validation and never ships. Click one during the demo and you land on the real
+10-Q. The quote is lifted word for word from the document. The model doesn't
+write it.
 
-**The system is allowed to reject its own ideas.** Candidates that fail
-quantitative validation are excluded from the portfolio *with the reasons
-attached*:
+**It rejects its own ideas.** Candidates that fail validation get thrown out of
+the portfolio, and you get told why:
 
 ```
 ACCEPTED  NGSM   5.0%   alpha 8.7   confidence 0.82
-REJECTED  WEAK   -> quant validator rejected the idea
-                    confidence 0.22 below minimum 0.55
+REJECTED  WEAK          quant validator rejected the idea
+                        confidence 0.22 below minimum 0.55
 ```
 
-**It tells you when it doesn't know.** Our own strategy returns +9.78%
-annualised excess return against SPY at a Sharpe of 1.03 — and an out-of-sample
-information coefficient of 0.02, t = 0.67. **That is not statistically
-significant, and every backtest response says so in its own payload.** A Sharpe
-ratio cannot leave this system without the evidence for it attached.
+**It tells you when it doesn't know.** Our strategy returns 9.78% annualised
+excess return over SPY at a Sharpe of 1.03. It also has an out of sample
+information coefficient of 0.02 with a t stat of 0.67, which is not
+statistically significant. Every backtest we return carries that caveat in the
+response itself. A Sharpe ratio cannot leave this system without the evidence
+sitting next to it.
 
-We are reporting a number that does not flatter us because that is the entire
-product. A tool that only ever agrees with you is the thing we built this to
+We are showing you a number that makes us look worse because that is the whole
+point of the thing. A tool that always agrees with you is what we built this to
 replace.
 
-## Technical work
+## The technical work
 
-**Look-ahead defence, enforced structurally.** Factors are handed a panel already
-truncated to the decision date, so a careless factor *cannot* read the future.
-Fundamentals join on the date a figure became public, not the quarter it
-describes — AAPL reports 2007 periods that were not filed until 2009, and
-joining on the period would hand the backtest two years of hindsight.
-Restatements de-duplicate to the first filing. Train and test are separated by
-an embargo the length of the return horizon. The document retriever refuses
-anything filed after the decision date. Each guard has a test that appends the
-future to the data and asserts the signal does not move.
+**Stopping look-ahead bias, structurally.** This is the bug that quietly ruins
+backtests. It never throws an error, it just makes everything look better than
+it was.
 
-**Point-in-time fundamentals from SEC EDGAR.** 5,629 quarters across 79 tickers
-back to 2006, pulled from the XBRL companyfacts API — the only free source
-carrying both the fiscal period and the publication date. Q4 is derived from the
-annual filing, because most issuers fold it in and without that correction
-"four quarters ago" silently becomes five.
+Factors get handed a dataset that has already been cut off at the decision date,
+so a factor physically cannot read the future. It isn't in the object it
+receives. Fundamentals join on the date a number became public, not the quarter
+it covers. Apple reports 2007 figures that weren't filed until 2009, so joining
+on the quarter would hand the backtest two years of hindsight. Restatements get
+resolved back to the original filing, because that's the number people actually
+traded on. Training and test periods are separated by a gap the length of the
+return horizon. The document retriever refuses anything filed after the decision
+date.
 
-**A statistical scoreboard built before the factors.** Information coefficient,
-rank-IC, t-statistics and signal decay, so every factor has to earn its place
-with a number rather than an argument.
+Every one of those has a test that appends future data and checks the signal
+doesn't budge.
 
-**C++ execution simulation.** A price-level order book and a Nasdaq ITCH parser
-behind pybind11, so slippage derives from book mechanics rather than a
-basis-point assumption — routed behind a config flag with the pure-Python path
-still working.
+**Point in time fundamentals from SEC EDGAR.** 5,629 quarters across 79
+companies going back to 2006, pulled from the XBRL companyfacts API. It's the
+only free source that gives you both the fiscal period and the date it was
+published. Q4 gets derived from the annual filing, because most companies fold
+it in, and without that fix "four quarters ago" quietly becomes five.
 
-**233 tests.** Including one that plants a known effect in a synthetic market
-and asserts the engine recovers it at the right magnitude — proving the
-measurement is correct independently of whether the alpha is.
+**A scoreboard built before the factors.** Information coefficient, rank IC,
+t stats, signal decay. We built the measuring stick first so every factor had to
+justify itself with a number instead of an argument.
+
+**C++ execution simulation.** A price level order book and a Nasdaq ITCH parser
+wired in through pybind11, so slippage comes from actual order book mechanics
+instead of a flat assumption. It sits behind a config flag with the Python
+version still working, so a compiler that fails on the demo laptop gives you a
+worse number rather than a broken demo.
+
+**233 tests.** One of them plants a known effect into a fake market and checks
+the engine finds it at the right size. That proves the measurement works even
+when the alpha doesn't.
 
 ## Built with Base44
 
-The data contract was frozen in the first hour as pydantic models. FastAPI
-publishes it as an OpenAPI specification — 14 endpoints, 36 typed schemas — and
-the Base44 dashboard is built directly against that spec.
+We froze the data contract in the first hour, as pydantic models. FastAPI
+publishes that same contract as an OpenAPI spec, 14 endpoints and 36 typed
+schemas, and the Base44 dashboard is built straight against it.
 
-That is what made a four-person parallel build work. A no-code frontend stayed
-in lockstep with a 14,000-line quantitative backend and 1,500 lines of C++,
-with no coordination overhead, while three engineers built the engine
-underneath it. Base44 was not where we made the pages; it was the decision that
-let the product surface move as fast as the backend.
+That's what made four people building at once actually work. The frontend stayed
+in sync with a 14,000 line backend without anyone needing to coordinate, while
+three of us built the engine underneath. Base44 wasn't just where the pages got
+made. It's the reason the product surface could move as fast as the backend did.
 
-## Honest limits
+## What's not finished
 
-- 80 names is too narrow a universe for a cross-sectional model. Momentum needs
-  breadth and we did not have it.
-- Out-of-sample IC drops about 65% from in-sample.
-- Eighteen factors tested, one cleared p < 0.05 — which is what chance alone
-  predicts. We are not claiming it.
-- Long-only, monthly rebalance, no borrow costs or taxes.
+80 companies is too small a universe for this kind of model. Cross sectional
+strategies need breadth and we didn't have it.
 
-With another week: the full S&P 500, twenty years of history, and walk-forward
-refitting instead of a single split. That is the honest path from *the engine
-works* to *the strategy works*.
+Out of sample IC drops about 65% from in sample.
+
+We tested 18 factors and one came out significant at 5%. With 18 tests you'd
+expect about one by pure chance, so we're not claiming it.
+
+Long only, monthly rebalancing, no borrow costs or taxes.
+
+Give us another week and we'd run the full S&P 500 over twenty years with
+walk forward refitting instead of one split. That's the honest path from "the
+engine works" to "the strategy works."
 
 ## Stack
 
-Python · FastAPI · NumPy / pandas / SciPy · FAISS · pydantic · C++ / pybind11 ·
-Base44 · SEC EDGAR · Yahoo Finance. Total spend under $40.
+Python, FastAPI, NumPy, pandas, SciPy, FAISS, pydantic, C++ with pybind11,
+Base44, SEC EDGAR, Yahoo Finance. Under $40 total.
 
----
-
-*Matt · Nalin · Zain · Cecile — IgnitionHacks V7*
+Matt, Nalin, Zain, Cecile. IgnitionHacks V7.
