@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from state import ResearchState
+from backend.agents.state import ResearchState
 
 
 class Agent(ABC):
