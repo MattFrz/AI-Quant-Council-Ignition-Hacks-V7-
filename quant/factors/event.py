@@ -6,6 +6,7 @@ from typing import List, Optional
 import numpy as np
 import pandas as pd
 
+from data.schemas.catalyst import Catalyst, Direction
 from data.schemas.signal import FactorCategory
 from quant.factors.base import Factor, Panel
 from quant.factors.fundamental import QUARTERS_PER_YEAR, known_reports
@@ -177,11 +178,101 @@ class EarningsAcceleration(Factor):
         return latest.reindex(window.tickers).astype(float)
 
 
-def default_event_factors() -> List[Factor]:
-    """The B7 set."""
+# --------------------------------------------------------------- catalyst-driven
+
+DIRECTION_SIGN = {Direction.BULLISH: 1.0, Direction.BEARISH: -1.0, Direction.NEUTRAL: 0.0}
+
+
+class _CatalystDrivenFactor(Factor):
+    """Scores catalysts whose headline matches this factor's keywords.
+
+    Guidance changes and corporate announcements are events, but they only
+    exist as text, so they arrive from Zain's C15 rather than from a filing's
+    numbers. Same contract as B8: ships inert, one call to go live, and NaN
+    rather than 0.0 where nothing is known.
+    """
+
+    category = FactorCategory.EVENT
+    keywords: tuple = ()
+
+    def __init__(
+        self,
+        catalysts: Optional[List[Catalyst]] = None,
+        half_life_days: int = 45,
+        max_age_days: int = 180,
+        min_lag_days: int = 1,
+        enabled: Optional[bool] = None,
+    ) -> None:
+        self.catalysts = list(catalysts or [])
+        self.half_life_days = half_life_days
+        self.max_age_days = max_age_days
+        self.min_lag_days = min_lag_days
+        self.required_history = 1
+        self.enabled = bool(self.catalysts) if enabled is None else bool(enabled)
+
+    @property
+    def is_stubbed(self) -> bool:
+        return not self.enabled or not self.catalysts
+
+    def _matches(self, catalyst: Catalyst) -> bool:
+        text = f"{catalyst.headline}".lower()
+        return any(k in text for k in self.keywords)
+
+    def _compute(self, window: Panel) -> pd.Series:
+        if self.is_stubbed:
+            return pd.Series(np.nan, index=window.tickers, dtype=float)
+
+        as_of = window.dates[-1].date()
+        scores = {}
+        for catalyst in self.catalysts:
+            if not catalyst.is_known_at(as_of) or not self._matches(catalyst):
+                continue
+            age = (as_of - catalyst.source_date).days
+            if age < 0 or age > self.max_age_days:
+                continue
+            decay = 0.5 ** (age / self.half_life_days)
+            sign = DIRECTION_SIGN.get(catalyst.direction, 0.0)
+            scores[catalyst.ticker] = scores.get(catalyst.ticker, 0.0) + sign * catalyst.confidence * decay
+
+        if not scores:
+            return pd.Series(np.nan, index=window.tickers, dtype=float)
+        return pd.Series(scores, dtype=float).reindex(window.tickers)
+
+    def with_catalysts(self, catalysts: List[Catalyst]) -> "_CatalystDrivenFactor":
+        return type(self)(
+            catalysts=catalysts, half_life_days=self.half_life_days,
+            max_age_days=self.max_age_days, min_lag_days=self.min_lag_days, enabled=True,
+        )
+
+
+class GuidanceChange(_CatalystDrivenFactor):
+    """Management raising or cutting guidance. WAITS ON ZAIN'S C15."""
+
+    keywords = ("guidance", "outlook", "forecast", "raises", "lowers", "cuts")
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.name = "guidance_change"
+
+
+class CorporateAnnouncements(_CatalystDrivenFactor):
+    """Buybacks, dividends, M&A, capex commitments. WAITS ON ZAIN'S C15."""
+
+    keywords = ("buyback", "repurchase", "dividend", "acquisition", "merger",
+                "capex", "capital expenditure", "expansion", "restructuring")
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.name = "corporate_announcements"
+
+
+def default_event_factors(catalysts: Optional[List[Catalyst]] = None) -> List[Factor]:
+    """The B7 set. The last two ship inert until C15 lands."""
     return [
         StandardizedUnexpectedEarnings(),
         RevenueSurprise(),
         PostEarningsDrift(),
         EarningsAcceleration(),
+        GuidanceChange(catalysts=catalysts),
+        CorporateAnnouncements(catalysts=catalysts),
     ]

@@ -1059,3 +1059,53 @@ def test_engine_full_includes_every_lane_factor(panel_with_fundamentals):
     assert {"momentum_12_1", "revenue_growth_yoy", "sue_eps", "catalyst_sentiment"} <= names
     ideas = engine.rank(engine.dates[-1], top_n=5)
     assert all(i.check_sums(1e-9) for i in ideas)
+
+
+def test_b7_covers_the_whole_spec():
+    """Earnings surprise, guidance change AND corporate announcements."""
+    from quant.factors.event import CorporateAnnouncements, GuidanceChange
+    names = {f.name for f in default_event_factors()}
+    assert {"sue_eps", "guidance_change", "corporate_announcements"} <= names
+
+
+def test_catalyst_driven_event_factors_ship_inert(synthetic_panel):
+    from quant.factors.event import CorporateAnnouncements, GuidanceChange
+    as_of = synthetic_panel.dates[-1]
+    for factor in (GuidanceChange(), CorporateAnnouncements()):
+        assert factor.is_stubbed
+        assert factor.compute(synthetic_panel, as_of).isna().all()
+
+
+def test_guidance_factor_matches_only_guidance_catalysts(synthetic_panel):
+    from data.schemas.catalyst import Catalyst, Direction, SourceType
+    from quant.factors.event import CorporateAnnouncements, GuidanceChange
+
+    ticker = synthetic_panel.tickers[0]
+    when = synthetic_panel.dates[-30].date()
+    def cat(cid, headline, direction=Direction.BULLISH):
+        return Catalyst(catalyst_id=cid, ticker=ticker, headline=headline, quote="q",
+                        source_type=SourceType.SEC_FILING, source_url="https://www.sec.gov/x",
+                        source_date=when, direction=direction, confidence=0.8)
+
+    catalysts = [cat("c1", "Company raises full-year guidance"),
+                 cat("c2", "Board approves $10B buyback")]
+    as_of = synthetic_panel.dates[-1]
+
+    guidance = GuidanceChange().with_catalysts(catalysts).compute(synthetic_panel, as_of)
+    corporate = CorporateAnnouncements().with_catalysts(catalysts).compute(synthetic_panel, as_of)
+
+    assert guidance[ticker] > 0 and corporate[ticker] > 0
+    # each matched exactly one catalyst, so neither double-counts the other's
+    assert guidance[ticker] == pytest.approx(corporate[ticker])
+
+
+def test_bearish_guidance_scores_negative(synthetic_panel):
+    from data.schemas.catalyst import Catalyst, Direction, SourceType
+    from quant.factors.event import GuidanceChange
+    ticker = synthetic_panel.tickers[0]
+    c = Catalyst(catalyst_id="c9", ticker=ticker, headline="Company cuts full-year outlook",
+                 quote="q", source_type=SourceType.SEC_FILING, source_url="https://www.sec.gov/x",
+                 source_date=synthetic_panel.dates[-30].date(),
+                 direction=Direction.BEARISH, confidence=0.9)
+    out = GuidanceChange().with_catalysts([c]).compute(synthetic_panel, synthetic_panel.dates[-1])
+    assert out[ticker] < 0
