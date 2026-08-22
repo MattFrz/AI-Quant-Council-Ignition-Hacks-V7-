@@ -241,6 +241,14 @@ def load_panel(
     except (FileNotFoundError, ImportError):
         pass  # bare price cache; sector neutralization stays off
 
+    fundamentals = None
+    try:
+        from data.pipelines.fundamentals import load_fundamentals  # noqa: WPS433
+
+        fundamentals = load_fundamentals()
+    except (FileNotFoundError, ImportError, OSError):
+        pass  # no EDGAR cache; B6/B7 return NaN rather than guessing
+
     universe = None
     if apply_universe:
         try:
@@ -258,4 +266,5 @@ def load_panel(
         except (FileNotFoundError, ImportError, KeyError, ValueError):
             pass  # no universe available; rank against everything in the cache
 
-    return Panel.from_wide(wide, securities=securities, universe=universe, **kwargs)
+    return Panel.from_wide(wide, securities=securities, universe=universe,
+                           fundamentals=fundamentals, **kwargs)

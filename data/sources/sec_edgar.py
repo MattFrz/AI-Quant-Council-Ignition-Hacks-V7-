@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 EDGAR_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 EDGAR_FULLTEXT_SEARCH_URL = "https://efts.sec.gov/LATEST/search-index?q={query}&forms={forms}"
 EDGAR_ARCHIVES_BASE = "https://www.sec.gov/Archives/edgar/data"
+EDGAR_COMPANYFACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
 TICKER_CIK_MAP_URL = "https://www.sec.gov/files/company_tickers.json"
 
 MAX_REQUESTS_PER_SECOND = 8  # stay under SEC's 10 req/sec limit with margin
@@ -60,6 +61,19 @@ class EdgarClient:
         if cik is None:
             raise KeyError(f"No CIK found for ticker {ticker!r}")
         return cik
+
+    def get_company_facts(self, ticker: str) -> dict:
+        """Every XBRL fact EDGAR holds for a company.
+
+        This is the numeric endpoint, distinct from the document endpoints
+        above: it is the only free source that carries both `end` (the fiscal
+        period) and `filed` (the date the figure became public). Lane B's
+        as-of joins key on the second, so without this there is no honest
+        fundamental factor.
+        """
+        cik = self.ticker_to_cik(ticker)
+        url = EDGAR_COMPANYFACTS_URL.format(cik=cik)
+        return self._rate_limited_get(url).json()
 
     def get_submissions(self, ticker: str) -> dict:
         cik = self.ticker_to_cik(ticker)
