@@ -51,8 +51,28 @@ FALLBACK_TICKERS = [
 
 
 def fetch_sp500() -> List[str]:
+    """Current S&P 500 constituents from Wikipedia.
+
+    Fetched with requests rather than pd.read_html directly: Wikipedia returns
+    403 to urllib's default user agent, which is what pandas uses internally.
+    Requires lxml for the HTML parse.
+
+    Survivorship note: this is the CURRENT index, so a backtest over it is
+    biased toward names that survived to today. Acceptable for a hackathon, but
+    say so rather than letting a judge find it.
+    """
+    import io
+
+    import requests
+
     try:
-        tables = pd.read_html(SP500_URL)
+        resp = requests.get(
+            SP500_URL,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; AIQuantCouncil/0.1)"},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        tables = pd.read_html(io.StringIO(resp.text))
         tickers = tables[0]["Symbol"].astype(str).str.replace(".", "-", regex=False).tolist()
         log.info("universe source: S&P 500 constituents (%d names)", len(tickers))
         return sorted(set(tickers + [settings.benchmark_ticker]))

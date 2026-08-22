@@ -13,6 +13,7 @@ numpy>=1.26
 pandas>=2.0
 scipy>=1.11
 pyarrow>=14.0
+lxml>=5.0
 
 # ---- Market / fundamental data --------------------------------------------
 yfinance>=0.2.40

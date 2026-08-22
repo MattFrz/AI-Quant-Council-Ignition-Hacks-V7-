@@ -120,7 +120,7 @@ def main() -> int:
     print(f"    turnover        {r.turnover:.2f}x")
     print(f"    win rate        {r.win_rate:.1%}")
     print(f"    trades          {r.n_trades}")
-    print(f"    cost drag       {run.cost_drag:.2%} of capital")
+    print(f"    cost drag       {run.cost_drag_annualized:.2%}/yr  (${run.total_costs:,.0f} total, {run.cost_drag:.1%} of avg equity)")
 
     if args.walk_forward:
         splits = make_splits(close.index, args.train_years, args.test_years)

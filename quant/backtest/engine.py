@@ -60,7 +60,18 @@ class BacktestRun:
     weights: pd.DataFrame
     equity: pd.Series
     fills: List[FillEvent] = field(default_factory=list)
+
+    #: Cumulative trading costs in dollars.
+    total_costs: float = 0.0
+
+    #: Costs as a fraction of AVERAGE equity, not initial capital. Dividing
+    #: cumulative dollars by starting capital is meaningless once the book
+    #: compounds: a 10-year run that grows 20x reports an 80% "drag" while
+    #: actually paying under 1% a year.
     cost_drag: float = 0.0
+
+    #: The number to quote. Annualized cost as a fraction of average equity.
+    cost_drag_annualized: float = 0.0
 
 
 class Backtester:
@@ -181,13 +192,18 @@ class Backtester:
             result.max_drawdown * 100, len(fills), total_costs,
         )
 
+        mean_equity = float(equity_series.mean()) or cfg.initial_capital
+        years = max(len(dates) / 252.0, 1e-9)
+
         return BacktestRun(
             result=result,
             returns=returns,
             weights=weights,
             equity=equity_series,
             fills=fills,
-            cost_drag=total_costs / cfg.initial_capital,
+            total_costs=total_costs,
+            cost_drag=total_costs / mean_equity,
+            cost_drag_annualized=(total_costs / mean_equity) / years,
         )
 
     # ------------------------------------------------------------- internals
