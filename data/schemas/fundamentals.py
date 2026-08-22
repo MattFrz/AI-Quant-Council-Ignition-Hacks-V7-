@@ -1,4 +1,4 @@
-"""Point-in-time fundamentals. Step 1.3 — the most important schema in the repo.
+"""Point-in-time fundamentals. Step 1.3 - the most important schema in the repo.
 
 `period_end` is the fiscal period the numbers describe.
 `report_date` is the date those numbers became public.
@@ -50,7 +50,7 @@ class FundamentalSnapshot(BaseModel):
         if self.report_date < self.period_end:
             raise ValueError(
                 f"{self.ticker}: report_date {self.report_date} precedes period_end "
-                f"{self.period_end} — a company cannot publish results before the "
+                f"{self.period_end} - a company cannot publish results before the "
                 f"period has ended. This is a look-ahead bug in the data pipeline."
             )
         return self

@@ -1,0 +1,18 @@
+# Normalize line endings so teammates on different platforms do not get
+# whole-file diffs. Text files are LF in the repo, native in the working copy.
+* text=auto
+
+*.py    text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+*.css   text eol=lf
+*.sh    text eol=lf
+*.cpp   text eol=lf
+*.hpp   text eol=lf
+
+*.parquet binary
+*.png     binary
+*.jpg     binary
+*.ipynb   text eol=lf

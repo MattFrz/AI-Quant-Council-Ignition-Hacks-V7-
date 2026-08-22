@@ -28,7 +28,7 @@ class Filing(BaseModel):
     ticker: str
     cik: Optional[str] = None
     form_type: FormType
-    filed_date: Date = Field(..., description="Date EDGAR received it — the as-of key")
+    filed_date: Date = Field(..., description="Date EDGAR received it - the as-of key")
     period_of_report: Optional[Date] = None
     url: str = Field(..., description="Public URL a judge can click")
     title: Optional[str] = None
@@ -39,10 +39,10 @@ class FilingChunk(BaseModel):
     accession_no: str
     ticker: str
     form_type: FormType
-    section: Optional[str] = Field(None, description="e.g. 'Item 7 — MD&A'")
+    section: Optional[str] = Field(None, description="e.g. 'Item 7 - MD&A'")
     text: str
 
-    # Provenance — never drop these two.
+    # Provenance - never drop these two.
     source_url: str
     filed_date: Date
 

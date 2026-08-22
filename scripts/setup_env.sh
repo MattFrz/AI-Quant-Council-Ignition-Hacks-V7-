@@ -19,7 +19,7 @@ echo "==> Frontend"
 ( cd frontend && npm install )
 
 echo "==> Config"
-[ -f .env ] || { cp .env.example .env; echo "created .env — FILL IN YOUR KEYS"; }
+[ -f .env ] || { cp .env.example .env; echo "created .env - FILL IN YOUR KEYS"; }
 [ -f frontend/.env.local ] || cp frontend/.env.local.example frontend/.env.local
 
 cat <<'MSG'

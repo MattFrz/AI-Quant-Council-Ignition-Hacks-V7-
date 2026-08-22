@@ -36,7 +36,7 @@ class Catalyst(BaseModel):
     quote: str = Field(
         ...,
         min_length=1,
-        description="VERBATIM text from the source. Never paraphrase — the "
+        description="VERBATIM text from the source. Never paraphrase - the "
                     "quote is what makes the trail auditable.",
     )
 

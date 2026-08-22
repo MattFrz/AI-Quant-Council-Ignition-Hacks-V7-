@@ -1,6 +1,6 @@
 """Risk metrics for one position or portfolio.
 
-NOTE: this file is not in the original section 21 tree — it was added because
+NOTE: this file is not in the original section 21 tree - it was added because
 TradeIdea needs somewhere to put the section 14 risk panel.
 """
 from __future__ import annotations
