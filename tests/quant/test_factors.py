@@ -661,3 +661,235 @@ def test_from_wide_demands_the_two_required_frames():
 
     with pytest.raises(AttributeError, match="volume"):
         Panel.from_wide(Bare())
+
+
+# ==========================================================================
+# Optional lane work: B12 matching, B14 regime, optimizers, SignalEngine
+# ==========================================================================
+
+from quant.eventstudy.matching import (  # noqa: E402
+    analogue_study,
+    find_similar_setups,
+    study_matched_setups,
+)
+from quant.optimization.mean_variance import (  # noqa: E402
+    alpha_to_expected_returns,
+    optimize_book,
+)
+from quant.optimization.risk_parity import (  # noqa: E402
+    covariance_from_panel,
+    equal_risk_contribution,
+    risk_contributions,
+    risk_parity_book,
+)
+from quant.signals.generation import SignalEngine  # noqa: E402
+from quant.signals.regime import (  # noqa: E402
+    Regime,
+    classify_regimes,
+    ic_by_regime,
+    market_index,
+    regime_at,
+    regime_summary,
+)
+
+
+# ---------------------------------------------------------------- B12
+
+def test_matches_come_only_from_the_past(panels, synthetic_panel):
+    """Every match, AND its whole outcome window, must precede the decision."""
+    target_date = list(panels.values())[0].index[-1]
+    ticker = panels["momentum_12_1"].loc[target_date].dropna().index[0]
+
+    post = 40
+    result = find_similar_setups(panels, ticker, target_date, k=20, post=post)
+
+    assert result.n_matches > 0
+    cutoff = target_date - pd.Timedelta(days=int(np.ceil(post * 7 / 5)))
+    assert all(m.date <= cutoff for m in result.matches)
+
+
+def test_matches_are_separated_to_avoid_double_counting(panels):
+    target_date = list(panels.values())[0].index[-1]
+    ticker = panels["momentum_12_1"].loc[target_date].dropna().index[0]
+
+    result = find_similar_setups(panels, ticker, target_date, k=30,
+                                 min_separation_days=90)
+    by_ticker = {}
+    for m in result.matches:
+        by_ticker.setdefault(m.ticker, []).append(m.date)
+    for dates in by_ticker.values():
+        dates = sorted(dates)
+        gaps = [(b - a).days for a, b in zip(dates, dates[1:])]
+        assert all(g >= 90 for g in gaps)
+
+
+def test_matches_are_ordered_by_closeness(panels):
+    target_date = list(panels.values())[0].index[-1]
+    ticker = panels["momentum_12_1"].loc[target_date].dropna().index[0]
+    result = find_similar_setups(panels, ticker, target_date, k=15)
+    distances = [m.distance for m in result.matches]
+    assert distances == sorted(distances)
+
+
+def test_analogue_study_produces_a_quotable_sentence(panels, synthetic_panel):
+    target_date = list(panels.values())[0].index[-1]
+    ticker = panels["momentum_12_1"].loc[target_date].dropna().index[0]
+
+    result = analogue_study(synthetic_panel, panels, ticker, target_date, k=25)
+    assert result.study is not None
+    line = result.summary_line()
+    assert "historical setups resembling" in line and "market-adjusted" in line
+    assert len(result.to_frame()) == result.n_matches
+
+
+def test_matching_rejects_an_unscored_target(panels):
+    target_date = list(panels.values())[0].index[-1]
+    with pytest.raises(KeyError, match="no complete factor vector"):
+        find_similar_setups(panels, "NOT_A_TICKER", target_date)
+
+
+# ---------------------------------------------------------------- B14
+
+def test_regime_labels_cover_the_sample(synthetic_panel):
+    regimes = classify_regimes(synthetic_panel)
+    assert len(regimes) == synthetic_panel.n_days
+    known = regimes[regimes != Regime.UNKNOWN.value]
+    assert len(known) > 0.5 * synthetic_panel.n_days
+    assert set(known.unique()) <= {r.value for r in Regime}
+
+
+def test_regime_threshold_does_not_use_the_future(synthetic_panel):
+    """Truncate the panel and the labels on the shared dates must not move."""
+    cut = synthetic_panel.dates[1200]
+    full = classify_regimes(synthetic_panel)
+    early = classify_regimes(synthetic_panel.as_of(cut, lag_days=0))
+
+    shared = early.index
+    pd.testing.assert_series_equal(full.loc[shared], early.loc[shared])
+
+
+def test_regime_summary_shares_sum_to_one(synthetic_panel):
+    summary = regime_summary(classify_regimes(synthetic_panel))
+    assert summary["share"].sum() == pytest.approx(1.0)
+
+
+def test_ic_by_regime_splits_the_scoreboard(panels, synthetic_panel):
+    table = ic_by_regime(panels["momentum_12_1"], synthetic_panel,
+                         horizon=21, name="momentum_12_1", min_periods=4)
+    if not table.empty:
+        assert {"mean_ic", "t_stat", "n"} <= set(table.columns)
+        assert table["n"].min() >= 4
+
+
+def test_regime_at_returns_a_label(synthetic_panel):
+    regimes = classify_regimes(synthetic_panel)
+    assert isinstance(regime_at(regimes, synthetic_panel.dates[-1]), Regime)
+    assert regime_at(regimes, pd.Timestamp("1990-01-01")) is Regime.UNKNOWN
+
+
+# ---------------------------------------------------- optimizers
+
+def test_equal_risk_contribution_actually_equalises_risk(synthetic_panel):
+    tickers = list(synthetic_panel.tickers[:8])
+    cov = covariance_from_panel(synthetic_panel, synthetic_panel.dates[-1], tickers)
+    w = equal_risk_contribution(cov)
+
+    contrib = risk_contributions(w.to_numpy(), np.asarray(cov))
+    share = contrib / contrib.sum()
+    assert w.sum() == pytest.approx(1.0)
+    assert share.max() - share.min() < 0.01   # all within a percentage point
+
+
+def test_risk_parity_differs_from_naive_inverse_vol_when_correlated(synthetic_panel):
+    tickers = list(synthetic_panel.tickers[:6])
+    cov = covariance_from_panel(synthetic_panel, synthetic_panel.dates[-1], tickers,
+                                shrinkage=0.0)
+    erc = equal_risk_contribution(cov)
+    inverse_vol = 1.0 / np.sqrt(np.diag(cov.values))
+    inverse_vol = pd.Series(inverse_vol / inverse_vol.sum(), index=cov.index)
+    # they agree only if correlations are zero; on real-ish data they should not
+    assert not np.allclose(erc.values, inverse_vol.values, atol=1e-6)
+
+
+def test_covariance_shrinkage_pulls_correlations_toward_zero(synthetic_panel):
+    tickers = list(synthetic_panel.tickers[:10])
+    as_of = synthetic_panel.dates[-1]
+    raw = covariance_from_panel(synthetic_panel, as_of, tickers, shrinkage=0.0)
+    shrunk = covariance_from_panel(synthetic_panel, as_of, tickers, shrinkage=0.5)
+
+    off_raw = np.abs(raw.values[~np.eye(len(tickers), dtype=bool)]).mean()
+    off_shrunk = np.abs(shrunk.values[~np.eye(len(tickers), dtype=bool)]).mean()
+    assert off_shrunk < off_raw
+    assert np.allclose(np.diag(raw.values), np.diag(shrunk.values))
+
+
+def test_alpha_to_expected_returns_states_a_bounded_spread():
+    alpha = pd.Series([3.0, 1.0, -1.0, -3.0], index=list("ABCD"))
+    er = alpha_to_expected_returns(alpha, spread=0.12)
+    assert er.max() - er.min() <= 0.12 + 1e-9
+    assert er.idxmax() == "A" and er.idxmin() == "D"
+
+
+def test_mean_variance_respects_caps_and_budget(panels, synthetic_panel):
+    as_of = list(panels.values())[0].index[-1]
+    engine_alpha = equal_weight_model(panels).score_panel(panels).loc[as_of]
+
+    book = optimize_book(engine_alpha, synthetic_panel, as_of,
+                         max_names=8, max_position=0.05)
+    assert book.converged
+    assert (book.weights <= 0.05 + 1e-8).all()
+    assert (book.weights >= -1e-8).all()
+    assert book.weights.sum() == pytest.approx(min(1.0, 0.05 * 8), abs=1e-6)
+
+
+def test_risk_parity_book_reports_risk_shares(panels, synthetic_panel):
+    as_of = list(panels.values())[0].index[-1]
+    alpha = equal_weight_model(panels).score_panel(panels).loc[as_of]
+    book = risk_parity_book(alpha, synthetic_panel, as_of, max_names=6)
+    assert len(book) == 6
+    assert book["pct_of_risk"].sum() == pytest.approx(1.0, abs=1e-6)
+
+
+# ---------------------------------------------------- SignalEngine
+
+def test_engine_runs_the_whole_lane(synthetic_panel, synthetic_truth):
+    engine = SignalEngine.default().fit(synthetic_panel, train_frac=0.6)
+
+    assert engine.fitted is not None
+    assert engine.model is not None
+    scores = engine.scores()
+    assert scores.notna().any().any()
+
+    train, test = engine.train_test_dates(train_frac=0.6)
+    assert train[-1] < test[0]
+
+    ideas = engine.rank(engine.dates[-1], top_n=5)
+    assert len(ideas) == 5
+    assert all(i.check_sums(1e-9) for i in ideas)
+
+
+def test_engine_evaluates_out_of_sample(synthetic_panel):
+    engine = SignalEngine.default().fit(synthetic_panel, train_frac=0.6)
+    _, test = engine.train_test_dates(train_frac=0.6)
+    result = engine.evaluate(synthetic_panel, dates=test)
+    assert result.n_periods > 5
+    assert np.isfinite(result.mean_ic)
+
+
+def test_engine_refuses_to_score_without_weights(synthetic_panel):
+    engine = SignalEngine.default().build(synthetic_panel)
+    with pytest.raises(RuntimeError, match="never invented"):
+        engine.scores()
+
+
+def test_engine_equal_weight_baseline(synthetic_panel):
+    engine = SignalEngine.default().use_equal_weights(synthetic_panel)
+    assert engine.fitted is None
+    assert engine.scores().notna().any().any()
+
+
+def test_engine_carries_the_nlp_stub_without_breaking(synthetic_panel):
+    engine = SignalEngine.default().fit(synthetic_panel)
+    assert "catalyst_sentiment" in engine.panels
+    assert engine.panels["catalyst_sentiment"].isna().all().all()
+    assert engine.scores().notna().any().any()
