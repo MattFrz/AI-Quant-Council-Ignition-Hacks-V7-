@@ -41,3 +41,4 @@ cpp/third_party/*
 Thumbs.db
 .vscode/
 .idea/
+.claude/
