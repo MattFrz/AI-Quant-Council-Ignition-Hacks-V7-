@@ -1,23 +1,4 @@
-"""The scoreboard. Step B5 — built BEFORE any more factors get written.
-
-The build order puts this ahead of the fundamental and event factors for a
-reason: without it there is no way to tell a good factor from a lucky one, and
-every factor added after this point has to earn its place with a number.
-
-Information coefficient is the cross-sectional correlation between a factor's
-scores on a date and the returns that followed. Averaged over many dates it
-says: does ranking on this factor rank the future correctly?
-
-Reading the output honestly:
-  |IC| ~ 0.02-0.05   normal for a real equity factor
-  |IC| ~ 0.10+       possible, but check for leakage first
-  |IC| ~ 0.30+       you have a bug, not an edge
-
-t-stat above ~2 is the usual bar for "not noise". It assumes independent
-periods, which holds only when the rebalance spacing is at least the return
-horizon. Overlapping windows inflate it — `summarize_ic` flags that case rather
-than letting the number pass unchallenged.
-"""
+"""The scoreboard. Step B5 — built BEFORE any more factors get written."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -165,12 +146,7 @@ def signal_decay(
     method: str = "spearman",
     name: str = "factor",
 ) -> pd.DataFrame:
-    """IC at several horizons — how fast the edge dies.
-
-    Shape tells you how to trade it. Decaying quickly means it must be traded
-    fast enough that costs eat it; flat or rising means a slow signal you can
-    hold, which is the one worth having at a monthly rebalance.
-    """
+    """IC at several horizons — how fast the edge dies."""
     rows = [information_coefficient(factor_df, panel, h, method, name).as_row() for h in horizons]
     return pd.DataFrame(rows).set_index("horizon")
 
@@ -183,11 +159,7 @@ def factor_scoreboard(
     dates: Optional[Sequence] = None,
     normalize_first: bool = True,
 ) -> pd.DataFrame:
-    """Every factor, one row each, sorted by |IC|. The B5 deliverable.
-
-    This is what a new factor has to get past before it is allowed into B9's
-    composite.
-    """
+    """Every factor, one row each, sorted by |IC|. The B5 deliverable."""
     factors = list(factors)
     if dates is None:
         longest = max((f.required_history for f in factors), default=0)

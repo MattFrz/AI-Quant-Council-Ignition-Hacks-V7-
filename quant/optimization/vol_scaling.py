@@ -1,22 +1,4 @@
-"""Volatility-scaled position sizing. Step B13.
-
-The plan is explicit that a transparent methodology beats a clever one, so this
-is deliberately the simplest thing that is still defensible: rank by alpha, size
-inversely to volatility, cap the concentration, scale the book to a target.
-
-Sizing inversely to volatility is the whole idea. Equal dollar weights across a
-40%-vol name and a 15%-vol name is not a balanced book — the first position
-drives nearly all the P&L and the ranking that picked them barely matters.
-Equal RISK weights let the alpha ranking actually express itself.
-
-`risk_parity.py` and `mean_variance.py` stay optional per the build order. This
-file is the one that has to work.
-
-Correlation is ignored here, which makes the portfolio-vol estimate an upper
-bound rather than a forecast — real correlated names come in under it. That is
-the honest direction to be wrong in, and the correlation step belongs to the
-portfolio construction lane.
-"""
+"""Volatility-scaled position sizing. Step B13."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -81,12 +63,7 @@ def size_positions(
     min_vol: float = 0.05,
     long_only: bool = True,
 ) -> SizedBook:
-    """Alpha ranking -> position sizes.
-
-    `max_position` defaults to 5% to match MAX_POSITION_PCT in the config.
-    Capped names have their excess redistributed across the rest, so the book
-    still reaches its target exposure instead of quietly running light.
-    """
+    """Alpha ranking -> position sizes."""
     scores = alpha.dropna()
     if long_only:
         scores = scores[scores > 0]

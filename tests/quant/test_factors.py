@@ -1,11 +1,4 @@
-"""Tests for the Lane B foundation, B1-B5.
-
-The one that matters most is `test_factor_cannot_see_the_future`. Leakage does
-not raise an exception — it just makes every number better than it should be,
-right up until someone asks how it was handled. So it gets tested directly:
-compute a factor at date t, append the future to the panel, compute again, and
-demand the two are identical.
-"""
+"""Tests for the Lane B foundation, B1-B5."""
 from __future__ import annotations
 
 import numpy as np
@@ -243,8 +236,7 @@ def test_ic_of_pure_noise_is_not_significant():
 
 
 def test_momentum_recovers_its_embedded_edge(synthetic_panel, synthetic_truth):
-    """The end-to-end check: Panel -> Factor -> normalize -> IC on a market
-    where momentum was deliberately built into the return process."""
+    """The end-to-end check: Panel -> Factor -> normalize -> IC on a market"""
     dates = rebalance_dates(synthetic_panel, warmup=synthetic_truth["first_signal_row"])
     scores = normalize_panel(factor_panel(Momentum12_1(), synthetic_panel, dates))
     summary = information_coefficient(scores, synthetic_panel, horizon=21,
@@ -273,8 +265,7 @@ def test_signal_decay_covers_every_horizon(synthetic_panel, synthetic_truth):
 
 
 def test_overlapping_windows_are_flagged(synthetic_panel, synthetic_truth):
-    """Weekly dates with a 63-day horizon overlap — the t-stat is optimistic
-    and the summary has to say so rather than quietly reporting it."""
+    """Weekly dates with a 63-day horizon overlap — the t-stat is optimistic"""
     dates = rebalance_dates(synthetic_panel, freq="W-FRI",
                             warmup=synthetic_truth["first_signal_row"])
     scores = normalize_panel(factor_panel(Momentum12_1(), synthetic_panel, dates))
@@ -606,8 +597,7 @@ def test_sizing_handles_an_empty_signal(synthetic_panel):
 # ==========================================================================
 
 class _FakeLoadWide:
-    """Stand-in for Matt's A3 `load_wide()` result, matching the attributes he
-    specified: .close (adjusted), .raw_close, .volume, .adv, .returns."""
+    """Stand-in for Matt's A3 `load_wide()` result, matching the attributes he"""
 
     def __init__(self, dates, tickers, misalign=False):
         rng = np.random.default_rng(2)

@@ -1,20 +1,4 @@
-"""Equal risk contribution sizing. Optional per the build order.
-
-B13's inverse-vol sizing equalises risk only if the names are uncorrelated. Two
-semiconductor suppliers at 5% each are not two 5% risks — they are closer to one
-10% risk wearing two names, which is exactly the concentration the section 14
-panel is supposed to catch.
-
-This file does it properly: every position contributes an equal share of
-portfolio variance, correlation included. It is a strictly better answer than
-B13 and a strictly harder one to explain on a slide, which is why B13 remains
-the default and this is the upgrade.
-
-Also holds the covariance estimator both optimizers use, with shrinkage. On a
-60-day window with 20 names the sample covariance is close to singular, and an
-optimizer handed a near-singular matrix will happily produce enormous offsetting
-positions that look precise and are noise.
-"""
+"""Equal risk contribution sizing. Optional per the build order."""
 from __future__ import annotations
 
 from typing import Optional, Sequence
@@ -36,12 +20,7 @@ def covariance_from_panel(
     shrinkage: float = 0.2,
     annualize: bool = True,
 ) -> pd.DataFrame:
-    """Shrunk sample covariance of daily returns, respecting the as-of rule.
-
-    Shrinks toward a diagonal of the sample variances: keeps each name's own
-    volatility, pulls the correlations toward zero. With a short window that is
-    the part of the estimate you should not trust.
-    """
+    """Shrunk sample covariance of daily returns, respecting the as-of rule."""
     if not 0.0 <= shrinkage <= 1.0:
         raise ValueError(f"shrinkage must be in [0, 1], got {shrinkage}")
 
@@ -73,13 +52,7 @@ def equal_risk_contribution(
     tol: float = 1e-10,
     long_only: bool = True,
 ) -> pd.Series:
-    """Weights where every name contributes the same share of variance.
-
-    Multiplicative fixed point with square-root damping: scale each weight by
-    the square root of (target contribution / actual contribution) and
-    renormalize. Damping matters — the undamped update oscillates on strongly
-    correlated pairs instead of settling.
-    """
+    """Weights where every name contributes the same share of variance."""
     matrix = np.asarray(cov, dtype=float)
     n = matrix.shape[0]
     if n == 0:

@@ -1,22 +1,4 @@
-"""Constrained mean-variance optimization. Optional per the build order.
-
-Section 13 prefers a transparent methodology over a clever one, and this file is
-the clever one — included for completeness, not as the default. B13's vol
-scaling is what should appear in the demo.
-
-The reason to be wary is not that Markowitz is wrong, it is that MVO is a
-maximiser of estimation error. Feed it noisy expected returns and it will find
-whichever name's alpha was most overstated and put the whole book in it. Three
-guards here push back on that:
-
-  - expected returns come from cross-sectional alpha RANKS, not from a raw
-    composite pretending to be a return forecast
-  - covariance is shrunk (see risk_parity.covariance_from_panel)
-  - position caps bind, and the risk-aversion term is high by default
-
-If the optimizer's answer differs wildly from the equal-risk answer, trust the
-equal-risk answer.
-"""
+"""Constrained mean-variance optimization. Optional per the build order."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -57,14 +39,7 @@ def alpha_to_expected_returns(
     alpha: pd.Series,
     spread: float = 0.12,
 ) -> pd.Series:
-    """Turn composite alpha into a plausible return forecast via ranks.
-
-    Deliberately crude. The composite is a score, not a percentage, and feeding
-    it to an optimizer as if it were an annual return is how a backtest ends up
-    claiming 200%. Ranks map to a fixed, stated spread — the best name in the
-    book is assumed to beat the worst by `spread` a year, and nothing more
-    precise is claimed.
-    """
+    """Turn composite alpha into a plausible return forecast via ranks."""
     scores = alpha.dropna()
     if scores.empty:
         return scores

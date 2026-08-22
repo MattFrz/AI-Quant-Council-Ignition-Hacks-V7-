@@ -1,27 +1,4 @@
-"""Fitting the composite weights. Step B10.
-
-This file is the answer to the hardest question a judge can ask: where did the
-weights come from? The plan is explicit — learned or validated, never chosen by
-the LLM, and never hand-tuned until the backtest looks good.
-
-Everything here fits on the TRAIN window only, and the split carries an embargo.
-That second part is the subtle one. If the train window ends on 30 June and the
-horizon is 21 days, the forward return attached to the final training date runs
-into late July — which is test data. Fitting on it leaks the test period into
-the weights, and nothing raises. `split_train_test` drops the last `horizon`
-dates of train so the two windows cannot touch.
-
-Two methods, both transparent:
-
-  IC weighting  — weight each factor by the stability of its own information
-                  coefficient. Robust, interpretable, degrades gracefully.
-  Ridge         — pooled cross-sectional regression of forward returns on
-                  factor scores, penalized. Handles correlated factors, which
-                  IC weighting does not.
-
-Use IC weighting unless there is a reason not to. With four correlated momentum
-factors and 60 monthly periods, ridge is fitting noise with more machinery.
-"""
+"""Fitting the composite weights. Step B10."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -76,12 +53,7 @@ def split_train_test(
     train_frac: float = 0.6,
     embargo: int = 21,
 ) -> Tuple[pd.DatetimeIndex, pd.DatetimeIndex]:
-    """Chronological split with an embargo gap between the windows.
-
-    `embargo` should be the return horizon: the forward return of the last
-    training date must finish before the test window opens, or the weights have
-    seen the test period.
-    """
+    """Chronological split with an embargo gap between the windows."""
     if not 0.0 < train_frac < 1.0:
         raise ValueError(f"train_frac must be in (0, 1), got {train_frac}")
 
@@ -122,16 +94,7 @@ def fit_ic_weights(
     use_ir: bool = True,
     min_abs_t: float = 0.0,
 ) -> FittedWeights:
-    """Weight each factor by its information coefficient on the train window.
-
-    `use_ir=True` weights by IC / std(IC) rather than mean IC — a factor with a
-    small but steady edge beats one with a larger, erratic edge, which is the
-    behaviour you want out of sample.
-
-    `min_abs_t` drops factors that did not earn their place. Set it to ~1.5 and
-    a factor that failed the B5 scoreboard contributes nothing instead of
-    contributing noise.
-    """
+    """Weight each factor by its information coefficient on the train window."""
     train = pd.DatetimeIndex(train_dates)
     fwd = forward_returns(panel, horizon=horizon)
 
@@ -178,12 +141,7 @@ def fit_ridge_weights(
     horizon: int = 21,
     ridge_alpha: float = 10.0,
 ) -> FittedWeights:
-    """Penalized pooled regression of forward returns on factor scores.
-
-    Closed form: w = (X'X + aI)^-1 X'y. The penalty matters — four momentum
-    variants are highly collinear and an unpenalized fit hands one of them a
-    huge positive weight and its neighbour an offsetting negative one.
-    """
+    """Penalized pooled regression of forward returns on factor scores."""
     train = pd.DatetimeIndex(train_dates)
     fwd = forward_returns(panel, horizon=horizon)
 

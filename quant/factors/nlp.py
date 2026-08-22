@@ -1,21 +1,4 @@
-"""Catalyst and sentiment factor. Step B8 — WAITS ON ZAIN'S C15.
-
-Ships disabled so the composite runs end to end today. The moment C15 starts
-emitting `Catalyst` objects, hand them to the constructor and this factor joins
-the model with no other change anywhere.
-
-Disabled returns NaN, not 0.0. The build order says "returning zeros", and the
-effect is the same — zero contribution to the composite — but the mechanism
-matters. A 0.0 is a measurement: "this name has neutral sentiment". A NaN is an
-absence: "nothing is known here". B9 rescales the surviving weights around a
-NaN, so the other factors still add to a full-strength score. Feed it zeros
-instead and every name gets silently diluted by a factor that measured nothing.
-
-The as-of rule applies to catalysts exactly as it does to prices: a catalyst is
-usable only once its SOURCE was published. `Catalyst.is_known_at` is the guard,
-and it keys on `source_date` rather than `event_date` — the market learned about
-the event when the filing appeared, not when the event happened.
-"""
+"""Catalyst and sentiment factor. Step B8 — WAITS ON ZAIN'S C15."""
 from __future__ import annotations
 
 from datetime import date as Date
@@ -36,13 +19,7 @@ DIRECTION_SIGN: Dict[Direction, float] = {
 
 
 class CatalystSentiment(Factor):
-    """Confidence-weighted, time-decayed net catalyst direction per ticker.
-
-    Older evidence counts for less. A guidance raise from three weeks ago is
-    live information; the same raise from ten months ago is in the price. The
-    half-life makes that explicit instead of letting a stale catalyst carry the
-    same weight as today's.
-    """
+    """Confidence-weighted, time-decayed net catalyst direction per ticker."""
 
     category = FactorCategory.NLP
 

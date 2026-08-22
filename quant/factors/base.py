@@ -1,22 +1,4 @@
-"""Factor base class and the in-memory panel every factor reads. Step B1.
-
-Two things live here and the split between them is the point.
-
-`Panel` is the only thing a Factor ever sees. It is built once from whatever
-Matt's A3 pipeline writes to disk. Factors never open files, never touch
-parquet, never know a path. If the on-disk format turns out different from what
-we assumed, one loader function changes and every factor below keeps working.
-
-`Factor` enforces the as-of rule in the base class instead of trusting each
-subclass to slice correctly. `compute()` truncates the panel to what was
-knowable at `as_of` and hands `_compute()` a window whose last row IS the
-decision date. A careless subclass cannot leak future data, because the future
-is not in the object it was given.
-
-That is deliberately stricter than the plan requires. Leakage is silent: it
-does not raise, it just inflates every number downstream until a judge asks
-how you handled it. Cheaper to make it structurally impossible.
-"""
+"""Factor base class and the in-memory panel every factor reads. Step B1."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -34,17 +16,7 @@ DateLike = Union[str, Date, pd.Timestamp]
 
 @dataclass(frozen=True)
 class Panel:
-    """Aligned market data for one universe over one date range.
-
-    Wide frames (index=date, columns=ticker) because this model is
-    cross-sectional: nearly every operation is "rank these tickers against each
-    other on this date", which is one line on a wide frame and a groupby on a
-    long one.
-
-    Fundamentals stay long, because they are sparse and irregular — a company
-    reports four times a year, on its own schedule, and the as-of join keys on
-    `report_date`.
-    """
+    """Aligned market data for one universe over one date range."""
 
     adj_close: pd.DataFrame
     volume: pd.DataFrame
@@ -102,12 +74,7 @@ class Panel:
     # ---- the as-of rule ----------------------------------------------------
 
     def as_of(self, as_of: DateLike, lag_days: int = 0) -> "Panel":
-        """Everything knowable at `as_of`, minus `lag_days` trading days.
-
-        `lag_days` is TRADING days, not calendar days — it counts rows, because
-        rows are the only thing that exist here. Matt's A8 guard uses the same
-        definition; if it ever doesn't, this is the line to argue about.
-        """
+        """Everything knowable at `as_of`, minus `lag_days` trading days."""
         if lag_days < 0:
             raise ValueError(f"lag_days must be >= 0, got {lag_days}")
 
@@ -147,8 +114,7 @@ class Panel:
         return px * self.volume
 
     def members(self, as_of: Optional[DateLike] = None) -> pd.Index:
-        """Tickers in the universe on a date. Ranking against today's survivors
-        instead of the names that were actually listed is survivorship bias."""
+        """Tickers in the universe on a date. Ranking against today's survivors"""
         if self.universe is None:
             return self.tickers
         if as_of is None:
@@ -171,17 +137,7 @@ class Panel:
         fundamentals: Optional[pd.DataFrame] = None,
         universe: Optional[pd.DataFrame] = None,
     ) -> "Panel":
-        """Build a Panel from Matt's A3 `load_wide()` result.
-
-        The parquet on disk is long format; `load_wide()` does the reshape and
-        hands back an object carrying `.close` (adjusted), `.raw_close`,
-        `.volume`, `.adv` and `.returns`. This is the seam the whole lane was
-        designed around — the on-disk layout can change again tomorrow and only
-        this method moves.
-
-        Duck-typed on purpose: anything exposing `.close` and `.volume` works,
-        which is what lets the tests exercise it before A3 ships.
-        """
+        """Build a Panel from Matt's A3 `load_wide()` result."""
         def grab(name: str, required: bool = False) -> Optional[pd.DataFrame]:
             frame = getattr(prices, name, None)
             if frame is None:
@@ -229,15 +185,7 @@ class Panel:
 
 
 class Factor(ABC):
-    """One number per ticker, as of one date.
-
-    Subclasses implement `_compute(window)`, where `window` is already truncated
-    to what was knowable. The last row of `window` is the decision date.
-
-    `min_lag_days` declares how stale this factor's inputs must be. It defaults
-    to 1: a signal for date t is built from data through t-1, so the decision
-    never uses a bar it could not have observed before acting on it.
-    """
+    """One number per ticker, as of one date."""
 
     name: str = "unnamed_factor"
     category: FactorCategory = FactorCategory.MOMENTUM
@@ -280,24 +228,7 @@ def load_panel(
     apply_universe: bool = True,
     **kwargs,
 ) -> Panel:
-    """The one line that swaps synthetic data for Matt's real cache.
-
-    Pulls three things, not one:
-
-      load_wide()      the price frames
-      load_profiles()  sector and market cap -> Panel.securities, without which
-                       sector neutralization silently does nothing
-      build_universe() who was actually IN the universe -> Panel.universe,
-                       without which the cross-section ranks against every
-                       ticker sitting in the cache rather than the names the
-                       screen admitted
-
-    Both extras degrade to None if the cache lacks them, so a bare price cache
-    still produces a working panel.
-
-    Imported lazily so `quant/` carries no import-time dependency on the data
-    pipelines — the factors stay testable without a populated cache.
-    """
+    """The one line that swaps synthetic data for Matt's real cache."""
     from data.pipelines.prices import load_wide  # noqa: WPS433
 
     wide = load_wide(tickers=tickers) if tickers is not None else load_wide()

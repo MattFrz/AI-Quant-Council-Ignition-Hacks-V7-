@@ -1,17 +1,4 @@
-"""Market regime detection. Step B14 — optional, done after the lane's core.
-
-Two axes, both computable from prices alone: is the market trending, and is it
-calm or volatile. That gives four regimes, and the useful output is not the
-label itself but the IC table conditioned on it — "momentum earns its keep in
-calm uptrends and gives it back in volatile drawdowns" is a real finding, and
-it is the kind of thing a judge with a quant background will ask about.
-
-One trap worth naming. Classifying volatility as "above or below the median"
-using the median of the WHOLE sample is look-ahead: in 2019 you did not know
-what 2023's volatility would be. Everything here uses expanding windows, so the
-threshold on any date is built only from data up to that date. It makes the
-early sample noisier, which is the honest cost of not cheating.
-"""
+"""Market regime detection. Step B14 — optional, done after the lane's core."""
 from __future__ import annotations
 
 from enum import Enum
@@ -48,11 +35,7 @@ def classify_regimes(
     lag_days: int = 1,
     min_history: int = 252,
 ) -> pd.Series:
-    """One `Regime` per date, using only data available on that date.
-
-    `lag_days` shifts the classification forward so a signal for date t is
-    conditioned on the regime as of t-1, matching every factor's convention.
-    """
+    """One `Regime` per date, using only data available on that date."""
     index = market_index(panel)
     rets = np.log(index).diff()
 
@@ -77,8 +60,7 @@ def classify_regimes(
 
 
 def regime_summary(regimes: pd.Series) -> pd.DataFrame:
-    """How much time was spent in each regime. Sanity check before trusting
-    any conditional IC — a regime holding 4% of the sample proves nothing."""
+    """How much time was spent in each regime. Sanity check before trusting"""
     counts = regimes.value_counts()
     return pd.DataFrame({
         "days": counts,

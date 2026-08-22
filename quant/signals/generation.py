@@ -1,17 +1,4 @@
-"""The lane's single entry point.
-
-B1-B13 are a set of parts. This is the one object that assembles them, so that
-nobody outside Lane B has to know the order things happen in.
-
-It matters most for Zain's C20 quant validator, which the build order is blunt
-about: that agent calls Lane A and Lane B code and reports what came back, and
-must never compute or estimate a number itself. That is far easier to hold to
-when the entire lane is one call with a typed result than when it is eleven
-imports and a specific sequence.
-
-Also the natural seam for Phase 3's services/pipeline.py — the thesis -> alpha
-step is `engine.fit(...)` then `engine.rank(...)`.
-"""
+"""The lane's single entry point."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -48,8 +35,7 @@ class SignalEngine:
 
     @classmethod
     def default(cls, catalysts: Optional[Sequence] = None, **kwargs) -> "SignalEngine":
-        """The market factors, plus the NLP factor — live if catalysts are
-        supplied, inert otherwise. One call covers both states of the world."""
+        """The market factors, plus the NLP factor — live if catalysts are"""
         factors: List[Factor] = list(default_market_factors())
         factors.append(CatalystSentiment(catalysts=catalysts))
         return cls(factors=factors, **kwargs)

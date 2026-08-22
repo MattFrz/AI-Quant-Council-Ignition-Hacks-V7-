@@ -1,15 +1,4 @@
-"""Price-and-volume factors. Step B2.
-
-These need nothing but prices, so they run the moment A3 lands — and against
-the synthetic panel they run today. Every one of them returns a RAW value with
-its natural sign and units. Nothing here is z-scored, winsorized or
-sign-flipped: normalization is B3's job and the direction of the bet is B10's,
-fitted from data rather than assumed here.
-
-That matters for realized volatility in particular. Low-vol tends to be the
-profitable side, but this file does not encode that opinion — it reports the
-volatility and lets the fitted weight come out negative if the data says so.
-"""
+"""Price-and-volume factors. Step B2."""
 from __future__ import annotations
 
 from typing import List
@@ -24,11 +13,7 @@ TRADING_DAYS = 252
 
 
 class Momentum12_1(Factor):
-    """Return from t-lookback to t-skip.
-
-    The skipped final month is not a detail — one-month reversal runs the other
-    way, and leaving it in tends to cancel the twelve-month effect out.
-    """
+    """Return from t-lookback to t-skip."""
 
     category = FactorCategory.MOMENTUM
 
@@ -68,11 +53,7 @@ class RealizedVolatility(Factor):
 
 
 class VolumeTrend(Factor):
-    """Recent dollar volume against its own baseline.
-
-    Ratio rather than difference, so a mega-cap and a small-cap are on the same
-    scale before they ever reach the cross-section.
-    """
+    """Recent dollar volume against its own baseline."""
 
     category = FactorCategory.EVENT
 
@@ -94,12 +75,7 @@ class VolumeTrend(Factor):
 
 
 class RelativeStrength(Factor):
-    """Trailing return minus the universe's average trailing return.
-
-    Already cross-sectional by construction, which makes it a useful check on
-    B4: if the ranking machinery is doing its job, normalizing this factor
-    should barely move it.
-    """
+    """Trailing return minus the universe's average trailing return."""
 
     category = FactorCategory.MOMENTUM
 

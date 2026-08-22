@@ -1,23 +1,4 @@
-"""Shared test fixtures — chiefly the synthetic market.
-
-Lane B cannot wait on Matt's A3 price pipeline, so it builds against a market
-generated here. That is not just a stand-in: it is a market where the right
-answer is KNOWN, which real data can never give you.
-
-Two generators, doing different jobs.
-
-`make_factor_and_returns` builds a factor and forward returns with an EXACT
-designed correlation. If B5's IC machinery is correct it recovers that number.
-This tests the arithmetic in isolation — no prices, no factors, no windows.
-
-`make_synthetic_panel` builds actual price series with momentum deliberately
-baked into the return process, so a real Momentum12_1 computed through the real
-Panel -> Factor -> normalize -> IC chain has to come back positive and
-significant. This tests the whole pipeline end to end.
-
-Without these, a weak IC on real data is ambiguous: broken code, or a weak
-factor? Here it can only be one of them.
-"""
+"""Shared test fixtures — chiefly the synthetic market."""
 from __future__ import annotations
 
 import sys
@@ -43,11 +24,7 @@ def make_factor_and_returns(
     seed: int = 11,
     freq: str = "ME",
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """A factor panel and forward returns with a designed cross-sectional IC.
-
-    Builds y = rho*x + sqrt(1-rho^2)*e per date, so corr(x, y) is `ic` by
-    construction. Whatever B5 reports back should be that number.
-    """
+    """A factor panel and forward returns with a designed cross-sectional IC."""
     if not -1.0 < ic < 1.0:
         raise ValueError(f"ic must be in (-1, 1), got {ic}")
 
@@ -73,17 +50,7 @@ def make_synthetic_panel(
     skip: int = 21,
     start: str = "2018-01-02",
 ) -> Tuple[Panel, Dict]:
-    """A price panel with genuine 12-1 momentum in the return process.
-
-    Each day's return gets a drift proportional to that name's standardized
-    trailing 12-1 momentum as of the previous day. The effect is small per day
-    and accumulates over the following month, which is what makes the monthly
-    IC land in the realistic 0.03-0.10 band rather than at an obviously-broken
-    0.9.
-
-    Returns (panel, truth) where `truth` carries the design parameters and the
-    IC implied by them, so a test can check recovery instead of eyeballing.
-    """
+    """A price panel with genuine 12-1 momentum in the return process."""
     rng = np.random.default_rng(seed)
     dates = pd.bdate_range(start, periods=n_days)
     tickers = [f"SYN{i:03d}" for i in range(n_tickers)]
@@ -172,6 +139,5 @@ def synthetic_truth(synthetic) -> Dict:
 
 @pytest.fixture(scope="session")
 def designed_ic() -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """Sized so the standard error of the mean IC is ~0.003 — small enough that
-    a real bug in the IC math cannot hide inside sampling noise."""
+    """Sized so the standard error of the mean IC is ~0.003 — small enough that"""
     return make_factor_and_returns(n_dates=240, n_tickers=400, ic=0.05)

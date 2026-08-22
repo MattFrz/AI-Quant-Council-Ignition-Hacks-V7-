@@ -1,25 +1,4 @@
-"""The composite alpha model. Step B9.
-
-This is where Lane B stops producing DataFrames and starts producing the frozen
-contract: `AlphaBreakdown` carrying `SignalContribution[]`, which is what
-`TradeIdea.alpha` holds and what the UI renders as the section 2 breakdown
-table.
-
-The breakdown IS the deliverable. A single composite number is a black box and
-reads like every other AI stock picker; the per-factor decomposition is the
-explainability story, and it is the reason the total is computed as the sum of
-its published parts rather than alongside them.
-
-That constraint is enforced by the schema — `AlphaBreakdown.check_sums()` — so
-this file computes each contribution first and derives the composite from them.
-The displayed parts add up to the displayed total by construction, not by
-coincidence.
-
-Missing factors are handled by rescaling, not by treating them as zero. A name
-with no fundamental data is not a name with average fundamentals; scoring it as
-if it were would quietly reward missing data. Instead the surviving weights are
-rescaled to their original total, and the contributions still sum exactly.
-"""
+"""The composite alpha model. Step B9."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -34,11 +13,7 @@ from data.schemas.signal import AlphaBreakdown, FactorCategory, SignalContributi
 
 @dataclass
 class CompositeModel:
-    """Weighted sum of normalized factors, with the breakdown preserved.
-
-    `weights` are fitted by B10 on the training window only. Nothing here
-    chooses them, and nothing here is allowed to look at returns.
-    """
+    """Weighted sum of normalized factors, with the breakdown preserved."""
 
     weights: Dict[str, float]
     categories: Dict[str, FactorCategory] = field(default_factory=dict)
@@ -102,12 +77,7 @@ class CompositeModel:
         return total.where(valid)
 
     def alpha_scores(self, panels: Mapping[str, pd.DataFrame]) -> pd.DataFrame:
-        """The 0-10 display score: cross-sectional percentile, divided by ten.
-
-        Deliberately a RANK, not a rescaled z-score. It means "better than 87%
-        of the universe today", which survives a volatile market where the raw
-        composite's spread changes underneath you.
-        """
+        """The 0-10 display score: cross-sectional percentile, divided by ten."""
         composite = self.score_panel(panels)
         return composite.rank(axis=1, pct=True, na_option="keep") * 10.0
 
@@ -190,12 +160,7 @@ def equal_weight_model(
     panels: Mapping[str, pd.DataFrame],
     categories: Optional[Mapping[str, FactorCategory]] = None,
 ) -> CompositeModel:
-    """Equal weights — the baseline any fitted model has to beat.
-
-    Worth keeping honest: if B10's fitted weights cannot outperform this on the
-    test window, the fitting is finding noise and the equal-weight version is
-    the one to ship.
-    """
+    """Equal weights — the baseline any fitted model has to beat."""
     n = len(panels)
     return CompositeModel(
         weights={name: 1.0 / n for name in panels},

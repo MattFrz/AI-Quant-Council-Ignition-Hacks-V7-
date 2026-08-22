@@ -1,18 +1,4 @@
-"""Cumulative abnormal return around events. Step B11.
-
-This is the statistical evidence behind the audit trail's central claim —
-"these events historically preceded positive returns". Zain's C16 assembles the
-trail; the number it quotes has to come from here, because the whole section 23
-differentiation rests on the LLM never producing a statistic itself.
-
-Abnormal return is market-adjusted: the stock's return minus the universe's
-equal-weighted return that day. Without that adjustment an event study run
-through a bull market shows every event working, because everything worked.
-
-What comes out is a curve and a t-stat, both honest about sample size. Twelve
-events is an anecdote with error bars, and `min_events` refuses rather than
-letting a three-event "pattern" reach a slide.
-"""
+"""Cumulative abnormal return around events. Step B11."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -72,12 +58,7 @@ def events_from_catalysts(
     catalysts: Iterable[Catalyst],
     use_event_date: bool = False,
 ) -> pd.DataFrame:
-    """Zain's C15 output -> the (ticker, date) frame this module consumes.
-
-    Defaults to `source_date`, not `event_date`: the study measures what
-    happened after the market could KNOW about the event. Using event_date
-    credits the strategy with moves that occurred before the filing appeared.
-    """
+    """Zain's C15 output -> the (ticker, date) frame this module consumes."""
     rows = []
     for c in catalysts:
         when = c.event_date if (use_event_date and c.event_date) else c.source_date
@@ -170,11 +151,7 @@ def study_by_direction(
     events: pd.DataFrame,
     **kwargs,
 ) -> Dict[str, EventStudyResult]:
-    """Split bullish from bearish before averaging.
-
-    Pooling them cancels the effect out and reports "no signal" for a catalyst
-    type that works perfectly well in both directions.
-    """
+    """Split bullish from bearish before averaging."""
     out: Dict[str, EventStudyResult] = {}
     if "direction" not in events.columns:
         out["all"] = event_study(panel, events, **kwargs)

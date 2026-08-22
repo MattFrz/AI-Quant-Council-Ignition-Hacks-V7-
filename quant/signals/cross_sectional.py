@@ -1,18 +1,4 @@
-"""Running a factor across every date. Step B4.
-
-B3 normalizes one date. This file turns a Factor into a full `date x ticker`
-panel of scores, which is the object the alpha model, the scoreboard and
-eventually Matt's backtester all consume.
-
-The model is cross-sectional, not time-series. We never ask "is this stock's
-momentum high for this stock" — we ask "is it high compared to every other name
-in the universe on this date". Every function here operates ACROSS a row.
-
-Note `forward_returns`: it deliberately looks into the future, and is the only
-thing here that does. It exists to SCORE signals after the fact, never to build
-them. Nothing in B1-B3 can see it, and nothing that feeds a live decision may
-call it.
-"""
+"""Running a factor across every date. Step B4."""
 from __future__ import annotations
 
 from typing import Iterable, List, Optional, Sequence
@@ -29,12 +15,7 @@ def rebalance_dates(
     freq: str = "ME",
     warmup: int = 0,
 ) -> pd.DatetimeIndex:
-    """Actual trading dates on a rebalance schedule.
-
-    Snaps to the last real trading day in each period, so every returned date
-    exists in the panel and positional lookups stay exact. `warmup` drops the
-    leading dates where long-window factors have no history yet.
-    """
+    """Actual trading dates on a rebalance schedule."""
     dates = panel.dates[warmup:] if warmup else panel.dates
     if len(dates) == 0:
         return pd.DatetimeIndex([])
@@ -77,12 +58,7 @@ def rank_panel(raw: pd.DataFrame, pct: bool = True) -> pd.DataFrame:
 
 
 def demean_by_group(df: pd.DataFrame, groups: pd.Series) -> pd.DataFrame:
-    """Subtract the group mean within each date — sector neutralization.
-
-    Without this, a factor that happens to load on one sector scores that
-    sector's beta rather than anything stock-specific. Every semiconductor name
-    ranking high is not a signal, it is a sector bet wearing a signal's clothes.
-    """
+    """Subtract the group mean within each date — sector neutralization."""
     g = groups.reindex(df.columns)
     if g.isna().all():
         return df
@@ -95,12 +71,7 @@ def forward_returns(
     horizon: int = 21,
     dates: Optional[Sequence] = None,
 ) -> pd.DataFrame:
-    """Return from each date to `horizon` trading days later. EVALUATION ONLY.
-
-    A signal dated t was built from data through t-1 and is executed at t, so
-    measuring t -> t+h is the honest window: it never credits the signal with a
-    move that had already happened when the decision was made.
-    """
+    """Return from each date to `horizon` trading days later. EVALUATION ONLY."""
     px = panel.adj_close.where(panel.adj_close > 0)
     fwd = px.shift(-horizon) / px - 1.0
     if dates is not None:

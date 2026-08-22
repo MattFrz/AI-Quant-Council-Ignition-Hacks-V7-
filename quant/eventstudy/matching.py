@@ -1,26 +1,4 @@
-"""Finding historical setups that resemble the current one. Step B12.
-
-Stretch goal #2, and the build order is right that it is close once B11 exists:
-match on the factor vector, then hand the matched dates straight to the event
-study. What comes back is the strongest sentence in the whole demo, because it
-is a statement about history rather than a model's opinion —
-
-    "We found 23 historical setups resembling this one. On average they gained
-     4.1% market-adjusted over the following 40 trading days (t=2.8)."
-
-Two leakage traps live in here, and neither raises if you get it wrong.
-
-1. A match must occur strictly BEFORE the decision date. Obvious, guarded.
-
-2. Subtler and easier to miss: a match's OUTCOME window must also close before
-   the decision date. A setup from 20 days ago whose 40-day outcome runs 20 days
-   into the future is not evidence — it is the future, laundered through an
-   average. `min_gap_days` enforces the full window, not just the match date.
-
-Overlapping matches are also filtered. Twenty matches on the same ticker in the
-same month are one event counted twenty times, and they make a t-stat look
-roughly sqrt(20) times better than the evidence deserves.
-"""
+"""Finding historical setups that resemble the current one. Step B12."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -108,14 +86,7 @@ def find_similar_setups(
     exclude_same_ticker: bool = False,
     weights: Optional[Mapping[str, float]] = None,
 ) -> MatchResult:
-    """The k closest historical setups, by weighted distance on factor scores.
-
-    `min_gap_days` defaults to the outcome window (`post`, converted to calendar
-    days) so no match's outcome can extend past the decision date.
-
-    `min_separation_days` keeps matches on the same ticker apart, so a single
-    long episode is not counted as many independent events.
-    """
+    """The k closest historical setups, by weighted distance on factor scores."""
     target_ts = pd.Timestamp(target_date)
     features = _feature_frame(panels)
     names = list(panels)
