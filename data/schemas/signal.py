@@ -1,7 +1,7 @@
 """Factor values and their contribution to the composite. Step 1.6.
 
 SignalContribution is exactly the breakdown table the UI renders (plan section 2).
-Return the per-factor contributions, not just the total — the breakdown IS the
+Return the per-factor contributions, not just the total - the breakdown IS the
 explainability story.
 """
 from __future__ import annotations

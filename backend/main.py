@@ -20,7 +20,7 @@ log = get_logger(__name__)
 
 app = FastAPI(
     title="Autonomous Alpha",
-    description="Autonomous quant research platform — IgnitionHacks V7",
+    description="Autonomous quant research platform - IgnitionHacks V7",
     version="0.1.0",
 )
 

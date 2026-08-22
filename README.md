@@ -9,7 +9,7 @@ tests, challenges and ranks trades.
 The LLM proposes. The quantitative engine decides whether the idea survives the
 evidence.
 
-**IgnitionHacks V7 — AI Quant Council** · Matt, Nalin, Zain, Cecile
+**IgnitionHacks V7 - AI Quant Council** · Matt, Nalin, Zain, Cecile
 
 ---
 
@@ -21,7 +21,7 @@ Requires Python 3.9+ (3.11+ recommended) and Node 18+.
 bash scripts/setup_env.sh
 ```
 
-Then fill in your keys in `.env` — the LLM key, and `SEC_USER_AGENT` with a real
+Then fill in your keys in `.env` - the LLM key, and `SEC_USER_AGENT` with a real
 name and email (EDGAR rejects requests without one).
 
 ## Run
@@ -78,9 +78,9 @@ python scripts/verify_contract.py
 
 ## Status
 
-- [x] Phase 0 — foundation, runs on all four machines
-- [x] Phase 1 — data contract frozen, fixture validates
-- [ ] Phase 2 — four parallel lanes
-- [ ] Phase 3 — integration
-- [ ] Phase 4 — C++ execution simulation (conditional)
-- [ ] Phase 5 — demo hardening
+- [x] Phase 0 - foundation, runs on all four machines
+- [x] Phase 1 - data contract frozen, fixture validates
+- [ ] Phase 2 - four parallel lanes
+- [ ] Phase 3 - integration
+- [ ] Phase 4 - C++ execution simulation (conditional)
+- [ ] Phase 5 - demo hardening

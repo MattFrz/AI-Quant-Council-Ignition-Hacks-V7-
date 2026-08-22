@@ -1,6 +1,6 @@
 """Single source of configuration for the whole backend.
 
-Every module imports `settings` from here. Do not call os.getenv anywhere else —
+Every module imports `settings` from here. Do not call os.getenv anywhere else -
 scattered env reads are how the four lanes end up disagreeing about paths.
 """
 from __future__ import annotations

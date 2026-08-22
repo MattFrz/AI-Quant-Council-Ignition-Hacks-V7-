@@ -25,7 +25,7 @@ class Bar(BaseModel):
 
 
 class PriceSeries(BaseModel):
-    """Convenience wrapper. The quant engine works in pandas, not these objects —
+    """Convenience wrapper. The quant engine works in pandas, not these objects -
     this exists for API responses and fixtures."""
     ticker: str
     bars: List[Bar] = Field(default_factory=list)
