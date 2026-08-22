@@ -8,10 +8,16 @@ from backend.agents.state import ResearchState
 # the point of this file is that it ONLY calls into quant/, it never
 # computes or estimates a number on its own. If Lane A/B isn't ready yet,
 # this should raise or return None — never a fabricated placeholder number.
-from quant.backtest.engine import run_backtest        # Matt, A11
-from quant.backtest.metrics import compute_metrics    # Matt, A12
-from quant.risk.metrics import compute_risk_metrics   # Matt, A15
-from quant.risk.var import compute_var                # Matt, A16
+# Phase 3: these now come from the quant/api.py facade (Matt), which wraps
+# A11/A12/A15/A16. The facade exists so this file's contract - "only calls
+# into quant/, never computes a number" - holds without either lane having to
+# rename its internals.
+from quant.api import (            # noqa: F401
+    run_backtest,                  # Matt, A11
+    compute_metrics,               # Matt, A12
+    compute_risk_metrics,          # Matt, A15
+    compute_var,                   # Matt, A16
+)
 
 
 class QuantValidator(Agent):
