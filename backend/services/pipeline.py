@@ -73,6 +73,7 @@ class Pipeline:
         self._emit = emit or (lambda e: None)
         self.events: List[ResearchEvent] = []
         self.event_study = None
+        self.excluded_tickers: set = set()
         self.degraded: List[str] = []
 
     # ---------------------------------------------------------------- events
@@ -132,7 +133,7 @@ class Pipeline:
         self.events.append(event)
         self._emit(event)
 
-    def _close_unreported_steps(self) -> None:
+    def _close_unreported_steps(self, skip: Optional[set] = None) -> None:
         """Mark any checklist step that never reached a terminal state.
 
         A row stuck on `running`, or never emitted at all, is indistinguishable
@@ -156,8 +157,9 @@ class Pipeline:
         }
         started = {e.step_id for e in self.events}
 
+        skip = skip or set()
         for step in PIPELINE_STEPS:
-            if step in resolved:
+            if step in resolved or step in skip:
                 continue
             detail = (
                 "skipped - upstream stage unavailable"
@@ -193,7 +195,7 @@ class Pipeline:
         result.universe = universe
         result.funnel_stages = universe.funnel() if universe else []
 
-        candidates = self._select_candidates(universe, max_candidates)
+        candidates = self._select_candidates(universe, max_candidates, thesis=thesis)
 
         idea = self._research_and_debate(thesis, as_of, universe, candidates)
         result.top_idea = idea
@@ -208,19 +210,25 @@ class Pipeline:
             universe, candidates, idea
         )
 
-        # Guarantee every checklist row resolves, whichever path the run took.
+        # Close any row that never resolved, whichever path the run took.
         #
         # The degraded path (agent layer unavailable) skips catalyst
         # extraction, both analysts and the event study entirely, so those
         # rows never receive a terminal event and the UI sits at 11/13
         # forever. Sweeping here is path-independent: add a new branch
         # tomorrow and the timeline still completes.
-        self._close_unreported_steps()
+        #
+        # MUST run before the final emit below. Sweeping afterwards closed
+        # final_recommendation with "ended without completing", and the
+        # frontend disconnects on the FIRST final_recommendation/done - so it
+        # tore down the stream on the placeholder and never saw the real one.
+        self._close_unreported_steps(skip={"final_recommendation"})
 
         result.events = self.events
         result.degraded = self.degraded
         result.elapsed_s = time.monotonic() - started
 
+        # The one event the client waits for. Always last, always emitted once.
         self.emit(
             "final_recommendation",
             "done",
@@ -264,7 +272,12 @@ class Pipeline:
         )
         return universe
 
-    def _select_candidates(self, universe: Optional[UniverseResult], max_candidates: int) -> List[str]:
+    def _select_candidates(
+        self,
+        universe: Optional[UniverseResult],
+        max_candidates: int,
+        thesis: str = "",
+    ) -> List[str]:
         self.emit("identify_candidates", "running")
         if universe is None or not universe.tickers:
             self._degrade("identify_candidates", "no universe to rank")
@@ -285,6 +298,15 @@ class Pipeline:
         # candidate produces an audit trail built from some OTHER company's
         # filings - which is worse than no audit trail, because it looks
         # authoritative and is wrong.
+        # Honour explicit exclusions in the thesis before anything else.
+        excluded = self._excluded_tickers(thesis)
+        if excluded:
+            before = len(ranked)
+            ranked = [t for t in ranked if t not in excluded]
+            log.info("thesis excludes %s (%d -> %d candidates)",
+                     sorted(excluded), before, len(ranked))
+            self.excluded_tickers = excluded
+
         citable = self._indexed_tickers()
         if citable:
             preferred = [t for t in ranked if t in citable]
@@ -378,6 +400,68 @@ class Pipeline:
             })
 
         return stages
+
+    #: Phrases that introduce an exclusion in a plain-English thesis.
+    _EXCLUSION_CUES = (
+        r"(?:that\s+)?(?:is|are)n[''`]?t\b",
+        r"(?:that\s+)?(?:is|are)\s+not\b",
+        r"\bexclud(?:e|ing)\b",
+        r"\bother\s+than\b",
+        r"\bbesides\b",
+        r"\bapart\s+from\b",
+        r"\bbut\s+not\b",
+        r"\bno\b",
+        r"\bnot\b",
+    )
+
+    def _excluded_tickers(self, thesis: str) -> set:
+        """Companies the thesis explicitly rules out.
+
+        A thesis is natural language and users write negative constraints:
+        "...that isn't Vertiv". Nothing downstream read them, so the system
+        cheerfully returned the one company it had just been told to avoid -
+        which reads as the thesis being ignored entirely, and on a demo it is
+        the obvious thing a judge will try.
+
+        Matches both tickers and company names, so "not Vertiv", "exclude VRT"
+        and "other than Vertiv Holdings" all work.
+        """
+        import re
+
+        if not thesis:
+            return set()
+
+        try:
+            profiles = load_profiles()
+        except Exception:  # noqa: BLE001
+            return set()
+
+        text = thesis.lower()
+        excluded = set()
+
+        for _, row in profiles.iterrows():
+            ticker = str(row.get("ticker") or "").strip()
+            name = str(row.get("name") or "").strip()
+            if not ticker:
+                continue
+
+            # Match the ticker as a whole word, or the distinctive first word
+            # of the company name ("Vertiv" from "Vertiv Holdings Co").
+            needles = [re.escape(ticker.lower())]
+            head = name.split(",")[0].split()[0].lower() if name else ""
+            if len(head) > 3 and head not in {"the", "advanced", "american", "first"}:
+                needles.append(re.escape(head))
+
+            for needle in needles:
+                for cue in self._EXCLUSION_CUES:
+                    # The cue must appear within ~40 chars before the name.
+                    if re.search(rf"{cue}[^.]{{0,40}}?\b{needle}\b", text):
+                        excluded.add(ticker)
+                        break
+                if ticker in excluded:
+                    break
+
+        return excluded
 
     def _indexed_tickers(self) -> set:
         """Tickers with filings in the RAG index, or an empty set if none."""
