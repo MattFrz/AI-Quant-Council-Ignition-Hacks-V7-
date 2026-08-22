@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import date
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import NamedTuple, Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -77,6 +77,61 @@ def load_profiles(path: Optional[Path] = None) -> pd.DataFrame:
 
 
 # ------------------------------------------------------------------- reshape
+
+class WidePanel(NamedTuple):
+    """Every frame is index=date (trading days only), columns=ticker, aligned.
+
+    This is the Lane B entry point. The parquet on disk is LONG format; this is
+    the reshape, done once.
+
+        from data.pipelines.prices import load_wide
+        p = load_wide()
+        signal = p.close.pct_change(252) - p.close.pct_change(21)
+    """
+
+    close: pd.DataFrame        # adjusted close - use for returns
+    raw_close: pd.DataFrame    # unadjusted - use for notional and liquidity
+    volume: pd.DataFrame
+    adv: pd.DataFrame          # 20-day average dollar volume
+    returns: pd.DataFrame      # daily simple returns from adjusted close
+
+    @property
+    def tickers(self) -> list:
+        return list(self.close.columns)
+
+    @property
+    def dates(self) -> pd.DatetimeIndex:
+        return self.close.index
+
+
+def load_wide(
+    path: Optional[Path] = None,
+    adv_window: int = 20,
+    tickers: Optional[Sequence[str]] = None,
+) -> WidePanel:
+    """Load the cached panel and return every wide frame Lane B needs.
+
+    All five frames share an identical index and column set, so a factor built
+    from one lines up with the others without further alignment.
+    """
+    panel = load_prices(path)
+    if tickers is not None:
+        panel = panel[panel["ticker"].isin(set(tickers))]
+
+    close = to_wide(panel, "adj_close")
+    raw_close = to_wide(panel, "close")
+    volume = to_wide(panel, "volume")
+
+    close, raw_close, volume = align(close, raw_close, volume)
+
+    return WidePanel(
+        close=close,
+        raw_close=raw_close,
+        volume=volume,
+        adv=average_dollar_volume(close, volume, window=adv_window),
+        returns=daily_returns(close),
+    )
+
 
 def to_wide(panel: pd.DataFrame, field: str = "adj_close") -> pd.DataFrame:
     """Long panel -> wide frame, index=date, columns=ticker."""
