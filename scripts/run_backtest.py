@@ -11,6 +11,7 @@ engine -> metrics -> benchmark -> risk. If this prints numbers, Lane A works.
 from __future__ import annotations
 
 import argparse
+import textwrap
 import sys
 from pathlib import Path
 
@@ -51,6 +52,44 @@ def make_signal(close: pd.DataFrame, kind: str) -> pd.DataFrame:
 
 def pct(x) -> str:
     return "n/a" if x is None else f"{x:+.2%}"
+
+
+def _print_caveats(comparison: dict, dates) -> None:
+    """Print the reasons these numbers may be flattering.
+
+    The caveat has to travel WITH the number. A warning that lives only in
+    someone's memory is a warning that does not survive to demo day, and a
+    judge who spots survivorship bias before you mention it will discount
+    everything else you say.
+    """
+    years = len(dates) / 252.0
+    notes = []
+
+    notes.append(
+        "SURVIVORSHIP: the universe is the CURRENT index membership, so names "
+        f"that were dropped or delisted over these {years:.0f} years are absent. "
+        "Returns are biased upward. State this before a judge finds it."
+    )
+
+    alpha = comparison.get("capm_alpha")
+    if alpha is not None and alpha > 0.15:
+        notes.append(
+            f"IMPLAUSIBLE ALPHA: {alpha:+.1%}/yr CAPM alpha would be a "
+            "world-class track record. Treat it as a bias artefact, not a result."
+        )
+
+    if comparison.get("strategy_volatility", 0) > 0.30:
+        notes.append(
+            f"CONCENTRATION: {comparison['strategy_volatility']:.0%} annualized "
+            "volatility. This book is too concentrated to run as-is."
+        )
+
+    if notes:
+        print("\n  READ BEFORE QUOTING THESE NUMBERS")
+        for n in notes:
+            wrapped = textwrap.fill(n, width=72,
+                                    initial_indent="    - ", subsequent_indent="      ")
+            print(wrapped)
 
 
 def main() -> int:
@@ -150,6 +189,8 @@ def main() -> int:
         print(f"    info ratio      {c['information_ratio']:.2f}")
         if c["beta"] > 1.1:
             print(f"    ^ beta > 1.1: much of the return is market exposure, not alpha")
+
+        _print_caveats(c, close.index)
 
     final_w = run.weights.iloc[-1]
     final_w = final_w[final_w.abs() > 1e-6]
