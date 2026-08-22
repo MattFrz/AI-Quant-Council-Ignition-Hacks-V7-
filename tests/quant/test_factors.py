@@ -236,7 +236,7 @@ def test_ic_of_pure_noise_is_not_significant():
 
 
 def test_momentum_recovers_its_embedded_edge(synthetic_panel, synthetic_truth):
-    """The end-to-end check: Panel -> Factor -> normalize -> IC on a market"""
+    """End to end: Panel -> Factor -> normalize -> IC, on a market with known momentum."""
     dates = rebalance_dates(synthetic_panel, warmup=synthetic_truth["first_signal_row"])
     scores = normalize_panel(factor_panel(Momentum12_1(), synthetic_panel, dates))
     summary = information_coefficient(scores, synthetic_panel, horizon=21,
@@ -265,7 +265,7 @@ def test_signal_decay_covers_every_horizon(synthetic_panel, synthetic_truth):
 
 
 def test_overlapping_windows_are_flagged(synthetic_panel, synthetic_truth):
-    """Weekly dates with a 63-day horizon overlap — the t-stat is optimistic"""
+    """Weekly dates with a 63-day horizon overlap, and must be flagged."""
     dates = rebalance_dates(synthetic_panel, freq="W-FRI",
                             warmup=synthetic_truth["first_signal_row"])
     scores = normalize_panel(factor_panel(Momentum12_1(), synthetic_panel, dates))
@@ -597,7 +597,7 @@ def test_sizing_handles_an_empty_signal(synthetic_panel):
 # ==========================================================================
 
 class _FakeLoadWide:
-    """Stand-in for Matt's A3 `load_wide()` result, matching the attributes he"""
+    """Stand-in for Matt's A3 load_wide() result."""
 
     def __init__(self, dates, tickers, misalign=False):
         rng = np.random.default_rng(2)
@@ -898,3 +898,164 @@ def test_ridge_tolerates_a_stubbed_factor(panels, synthetic_panel):
 
     assert fitted.weights[stub.name] == 0.0
     assert sum(abs(w) for w in fitted.weights.values()) == pytest.approx(1.0)
+
+
+# ==========================================================================
+# B6 fundamentals and B7 events
+# ==========================================================================
+
+from quant.factors.event import (  # noqa: E402
+    EarningsAcceleration,
+    PostEarningsDrift,
+    RevenueSurprise,
+    StandardizedUnexpectedEarnings,
+    default_event_factors,
+    first_filed,
+)
+from quant.factors.fundamental import (  # noqa: E402
+    EarningsYield,
+    FreeCashFlowYield,
+    MarginExpansion,
+    NetDebtToMarketCap,
+    RevenueGrowth,
+    default_fundamental_factors,
+    latest_and_prior,
+)
+
+
+def test_fixture_reports_never_precede_their_period(synthetic_fundamentals):
+    assert (synthetic_fundamentals["report_date"] > synthetic_fundamentals["period_end"]).all()
+
+
+def test_fundamental_factors_produce_values(panel_with_fundamentals):
+    as_of = panel_with_fundamentals.dates[-1]
+    for factor in default_fundamental_factors():
+        out = factor.compute(panel_with_fundamentals, as_of)
+        assert out.notna().sum() > 0.8 * panel_with_fundamentals.n_tickers
+        assert out.name == factor.name
+
+
+def test_factor_joins_on_report_date_not_period_end(panel_with_fundamentals, synthetic_fundamentals):
+    """THE B6 test. A quarter must be invisible until the day it was filed."""
+    ticker = panel_with_fundamentals.tickers[0]
+    rows = synthetic_fundamentals[synthetic_fundamentals["ticker"] == ticker]
+    row = rows.iloc[len(rows) // 2]
+    period_end, report_date = row["period_end"], row["report_date"]
+
+    dates = panel_with_fundamentals.dates
+    # a trading day AFTER the period closed but BEFORE the filing appeared
+    between = dates[(dates > period_end) & (dates < report_date)]
+    assert len(between) > 0, "fixture must leave a gap between period_end and report_date"
+
+    factor = RevenueGrowth()
+    blind = factor.compute(panel_with_fundamentals, between[-1])[ticker]
+
+    after = dates[dates > report_date]
+    seeing = factor.compute(panel_with_fundamentals, after[1])[ticker]
+
+    # if it were joining on period_end, both would already reflect the new quarter
+    assert blind != pytest.approx(seeing)
+
+
+def test_fundamental_factor_cannot_see_the_future(panel_with_fundamentals):
+    as_of = panel_with_fundamentals.dates[1400]
+    truncated = panel_with_fundamentals.as_of(as_of)
+    for factor in default_fundamental_factors() + default_event_factors():
+        pd.testing.assert_series_equal(
+            factor.compute(truncated, as_of),
+            factor.compute(panel_with_fundamentals, as_of),
+        )
+
+
+def test_restatement_does_not_override_the_original_filing(panel_with_fundamentals, synthetic_fundamentals):
+    """A 10-K restating an old quarter must not rewrite what the market saw."""
+    ticker = panel_with_fundamentals.tickers[0]
+    as_of = panel_with_fundamentals.dates[-1]
+    clean = RevenueGrowth().compute(panel_with_fundamentals, as_of)[ticker]
+
+    rows = synthetic_fundamentals[synthetic_fundamentals["ticker"] == ticker]
+    restated = rows.iloc[-1].copy()
+    restated["revenue"] = restated["revenue"] * 3.0          # wildly restated
+    restated["report_date"] = restated["report_date"] + pd.Timedelta(days=200)
+    polluted = pd.concat([synthetic_fundamentals, pd.DataFrame([restated])], ignore_index=True)
+
+    panel = Panel(
+        adj_close=panel_with_fundamentals.adj_close,
+        volume=panel_with_fundamentals.volume,
+        close=panel_with_fundamentals.close,
+        securities=panel_with_fundamentals.securities,
+        universe=panel_with_fundamentals.universe,
+        fundamentals=polluted,
+    )
+    assert RevenueGrowth().compute(panel, as_of)[ticker] == pytest.approx(clean)
+
+
+def test_valuation_uses_point_in_time_shares_not_todays_market_cap(panel_with_fundamentals):
+    """Changing securities.market_cap must not move a valuation factor."""
+    as_of = panel_with_fundamentals.dates[-1]
+    before = EarningsYield().compute(panel_with_fundamentals, as_of)
+
+    securities = panel_with_fundamentals.securities.copy()
+    securities["market_cap"] = securities["market_cap"] * 10.0
+    panel = Panel(
+        adj_close=panel_with_fundamentals.adj_close,
+        volume=panel_with_fundamentals.volume,
+        close=panel_with_fundamentals.close,
+        securities=securities,
+        universe=panel_with_fundamentals.universe,
+        fundamentals=panel_with_fundamentals.fundamentals,
+    )
+    pd.testing.assert_series_equal(before, EarningsYield().compute(panel, as_of))
+
+
+def test_revenue_growth_finds_the_embedded_signal(panel_with_fundamentals, synthetic_truth):
+    """Growth was tied to each ticker's true drift, so the IC must be positive."""
+    dates = rebalance_dates(panel_with_fundamentals, warmup=synthetic_truth["first_signal_row"])
+    scores = normalize_panel(factor_panel(RevenueGrowth(), panel_with_fundamentals, dates))
+    summary = information_coefficient(scores, panel_with_fundamentals, 21, "spearman", name="revenue_growth")
+    assert summary.mean_ic > 0.0
+    assert summary.t_stat > 2.0
+
+
+def test_no_fundamentals_gives_nan_not_a_crash(synthetic_panel):
+    as_of = synthetic_panel.dates[-1]
+    for factor in default_fundamental_factors() + default_event_factors():
+        assert factor.compute(synthetic_panel, as_of).isna().all()
+
+
+# ---------------------------------------------------------------- B7
+
+def test_sue_scales_by_the_company_s_own_variability(panel_with_fundamentals):
+    as_of = panel_with_fundamentals.dates[-1]
+    out = StandardizedUnexpectedEarnings().compute(panel_with_fundamentals, as_of)
+    assert out.notna().sum() > 0.8 * panel_with_fundamentals.n_tickers
+    assert out.abs().median() < 10.0     # standardized, not raw dollars
+
+
+def test_sue_needs_enough_history(panel_with_fundamentals):
+    early = panel_with_fundamentals.dates[5]
+    assert StandardizedUnexpectedEarnings(min_history=6).compute(panel_with_fundamentals, early).isna().all()
+
+
+def test_pead_is_nan_once_the_report_is_stale(panel_with_fundamentals):
+    as_of = panel_with_fundamentals.dates[-1]
+    fresh = PostEarningsDrift(max_age_days=60).compute(panel_with_fundamentals, as_of)
+    assert fresh.notna().sum() > 0
+    assert fresh.isna().sum() > 0        # names that have not reported recently
+
+    stale = PostEarningsDrift(max_age_days=1).compute(panel_with_fundamentals, as_of)
+    assert stale.notna().sum() <= fresh.notna().sum()
+
+
+def test_first_filed_deduplicates_periods(panel_with_fundamentals):
+    window = panel_with_fundamentals.as_of(panel_with_fundamentals.dates[-1], 1)
+    reports = first_filed(window)
+    assert not reports.duplicated(subset=["ticker", "period_end"]).any()
+
+
+def test_engine_full_includes_every_lane_factor(panel_with_fundamentals):
+    engine = SignalEngine.full().fit(panel_with_fundamentals, train_frac=0.6)
+    names = set(engine.panels)
+    assert {"momentum_12_1", "revenue_growth_yoy", "sue_eps", "catalyst_sentiment"} <= names
+    ideas = engine.rank(engine.dates[-1], top_n=5)
+    assert all(i.check_sums(1e-9) for i in ideas)

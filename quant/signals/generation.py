@@ -12,6 +12,8 @@ from quant.alpha.composite import CompositeModel, equal_weight_model
 from quant.alpha.statistical_tests import factor_scoreboard, information_coefficient
 from quant.alpha.weighting import FittedWeights, fit_weights, split_train_test
 from quant.factors.base import Factor, Panel
+from quant.factors.event import default_event_factors
+from quant.factors.fundamental import default_fundamental_factors
 from quant.factors.market import default_market_factors
 from quant.factors.nlp import CatalystSentiment
 from quant.signals.cross_sectional import build_factor_panels, rebalance_dates
@@ -34,11 +36,26 @@ class SignalEngine:
     # ---- construction ------------------------------------------------------
 
     @classmethod
-    def default(cls, catalysts: Optional[Sequence] = None, **kwargs) -> "SignalEngine":
-        """The market factors, plus the NLP factor — live if catalysts are"""
+    def default(
+        cls,
+        catalysts: Optional[Sequence] = None,
+        fundamentals: bool = False,
+        events: bool = False,
+        **kwargs,
+    ) -> "SignalEngine":
+        """Market factors plus the NLP factor; fundamentals and events on request."""
         factors: List[Factor] = list(default_market_factors())
+        if fundamentals:
+            factors += default_fundamental_factors()
+        if events:
+            factors += default_event_factors()
         factors.append(CatalystSentiment(catalysts=catalysts))
         return cls(factors=factors, **kwargs)
+
+    @classmethod
+    def full(cls, catalysts: Optional[Sequence] = None, **kwargs) -> "SignalEngine":
+        """Every factor in the lane. Needs a panel carrying fundamentals."""
+        return cls.default(catalysts=catalysts, fundamentals=True, events=True, **kwargs)
 
     @property
     def categories(self) -> Dict[str, FactorCategory]:

@@ -60,7 +60,7 @@ def classify_regimes(
 
 
 def regime_summary(regimes: pd.Series) -> pd.DataFrame:
-    """How much time was spent in each regime. Sanity check before trusting"""
+    """How much time was spent in each regime."""
     counts = regimes.value_counts()
     return pd.DataFrame({
         "days": counts,

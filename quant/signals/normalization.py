@@ -69,7 +69,7 @@ def normalize(
     robust: bool = False,
     min_obs: int = MIN_OBS,
 ) -> pd.Series:
-    """The standard pipeline: winsorize, then z-score. This is the default path"""
+    """The standard pipeline: winsorize, then z-score."""
     out = winsorize(s, *winsor) if winsor is not None else s
     return zscore(out, robust=robust, min_obs=min_obs)
 

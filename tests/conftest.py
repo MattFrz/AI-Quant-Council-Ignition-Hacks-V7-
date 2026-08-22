@@ -101,6 +101,9 @@ def make_synthetic_panel(
     expected_ic = a / np.sqrt(a**2 + h)
 
     truth = {
+        "drift": drift,
+        "tickers": tickers,
+        "dates": dates,
         "momentum_strength": momentum_strength,
         "lookback": lookback,
         "skip": skip,
@@ -139,5 +142,96 @@ def synthetic_truth(synthetic) -> Dict:
 
 @pytest.fixture(scope="session")
 def designed_ic() -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """Sized so the standard error of the mean IC is ~0.003 — small enough that"""
+    """Sized so the standard error of the mean IC is about 0.003."""
     return make_factor_and_returns(n_dates=240, n_tickers=400, ic=0.05)
+
+
+def make_synthetic_fundamentals(
+    truth: Dict,
+    seed: int = 21,
+    growth_link: float = 0.7,
+    report_lag_days: int = 45,
+) -> pd.DataFrame:
+    """Quarterly point-in-time fundamentals for the synthetic market.
+
+    Two things make this a real test rather than filler.
+
+    `report_date` sits `report_lag_days` AFTER `period_end`, jittered, exactly
+    as a real filing does. A factor that joins on period_end instead will look
+    brilliant here and be worthless live, which is the bug the whole schema
+    exists to prevent.
+
+    Revenue growth is tied to each ticker's true return drift via `growth_link`,
+    so a correctly built growth factor has something real to find and a broken
+    one has nothing.
+    """
+    rng = np.random.default_rng(seed)
+    tickers = truth["tickers"]
+    dates = truth["dates"]
+    drift = np.asarray(truth["drift"], dtype=float)
+
+    # standardize drift -> the growth signal every ticker's revenue follows
+    signal = (drift - drift.mean()) / (drift.std() or 1.0)
+
+    start, end = dates[0], dates[-1]
+    period_ends = pd.date_range(start - pd.Timedelta(days=400), end, freq="QE")
+
+    base_revenue = rng.uniform(2e8, 4e10, len(tickers))
+    base_margin = rng.uniform(0.08, 0.42, len(tickers))
+    base_shares = rng.uniform(2e8, 6e9, len(tickers))
+
+    rows = []
+    for i, ticker in enumerate(tickers):
+        growth = 0.02 + growth_link * 0.06 * signal[i]      # annual revenue growth
+        revenue = base_revenue[i]
+        margin = base_margin[i]
+        shares = base_shares[i]
+
+        for q, period_end in enumerate(period_ends):
+            revenue *= (1.0 + growth / 4.0) * (1.0 + rng.normal(0, 0.02))
+            margin = float(np.clip(margin + 0.004 * signal[i] + rng.normal(0, 0.006), 0.01, 0.6))
+            shares *= (1.0 - rng.uniform(0.0, 0.004))        # buybacks
+            operating_income = revenue * margin
+            net_income = operating_income * rng.uniform(0.70, 0.85)
+
+            lag = report_lag_days + int(rng.integers(-8, 15))
+            rows.append({
+                "ticker": ticker,
+                "period_end": period_end.date(),
+                "report_date": (period_end + pd.Timedelta(days=lag)).date(),
+                "fiscal_period": f"Q{(q % 4) + 1}",
+                "revenue": revenue,
+                "gross_profit": revenue * (margin + 0.2),
+                "operating_income": operating_income,
+                "net_income": net_income,
+                "eps_diluted": net_income / shares,
+                "gross_margin": margin + 0.2,
+                "operating_margin": margin,
+                "free_cash_flow": operating_income * rng.uniform(0.5, 0.9),
+                "capex": revenue * rng.uniform(0.02, 0.09),
+                "roic": margin * rng.uniform(0.5, 1.4),
+                "total_debt": revenue * rng.uniform(0.1, 1.2),
+                "cash_and_equivalents": revenue * rng.uniform(0.05, 0.6),
+                "shares_diluted": shares,
+                "source_url": f"https://www.sec.gov/synthetic/{ticker}/{period_end.date()}",
+            })
+
+    frame = pd.DataFrame(rows)
+    frame["period_end"] = pd.to_datetime(frame["period_end"])
+    frame["report_date"] = pd.to_datetime(frame["report_date"])
+    return frame.sort_values(["ticker", "report_date"]).reset_index(drop=True)
+
+
+@pytest.fixture(scope="session")
+def synthetic_fundamentals(synthetic_truth) -> pd.DataFrame:
+    return make_synthetic_fundamentals(synthetic_truth)
+
+
+@pytest.fixture(scope="session")
+def panel_with_fundamentals(synthetic, synthetic_fundamentals) -> Panel:
+    panel = synthetic[0]
+    return Panel(
+        adj_close=panel.adj_close, volume=panel.volume, close=panel.close,
+        securities=panel.securities, universe=panel.universe,
+        fundamentals=synthetic_fundamentals,
+    )

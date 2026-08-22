@@ -114,7 +114,7 @@ class Panel:
         return px * self.volume
 
     def members(self, as_of: Optional[DateLike] = None) -> pd.Index:
-        """Tickers in the universe on a date. Ranking against today's survivors"""
+        """Tickers in the universe on a date, not today's survivors."""
         if self.universe is None:
             return self.tickers
         if as_of is None:
