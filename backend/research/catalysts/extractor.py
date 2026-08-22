@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import date
 
-from data.schemas.catalyst import Catalyst, SourceType  # adjust import if your schema module differs
+from data.schemas.catalyst import Catalyst, SourceType, Direction  # adjust import if your schema module differs
 from backend.research.event_extraction.filings import ExtractedEvent
 from backend.rag.retrieval.citations import Citation
 
@@ -31,13 +31,13 @@ def _source_type_for(citation: Citation) -> SourceType:
 # hint. Adjust as your team's factor model (Nalin's B8) settles on what it
 # actually wants — this is a reasonable starting default, not gospel.
 _EVENT_TYPE_DIRECTION = {
-    "guidance_change": None,  # ambiguous without reading the description — leave to LLM/manual review
-    "capex_commentary": None,
-    "segment_shift": None,
-    "margin_commentary": None,
-    "buyback_or_dividend": "up",
-    "management_change": None,
-    "other": None,
+    "guidance_change": Direction.NEUTRAL,  # ambiguous without reading the description — leave to LLM/manual review
+    "capex_commentary": Direction.NEUTRAL,
+    "segment_shift": Direction.NEUTRAL,
+    "margin_commentary": Direction.NEUTRAL,
+    "buyback_or_dividend": Direction.BULLISH,
+    "management_change": Direction.NEUTRAL,
+    "other": Direction.NEUTRAL,
 }
 
 
@@ -89,7 +89,7 @@ def events_to_catalysts(
             source_url=citation.source_url,
             source_date=citation.filed_date,
             event_date=event_date,
-            direction=_EVENT_TYPE_DIRECTION.get(event.event_type),
+            direction=_EVENT_TYPE_DIRECTION.get(event.event_type, Direction.NEUTRAL),
             confidence=_confidence_for_event_type(event.event_type),
         )
         catalysts.append(catalyst)
