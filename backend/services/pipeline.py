@@ -49,7 +49,14 @@ class PipelineResult:
     elapsed_s: float = 0.0
     degraded: List[str] = field(default_factory=list)
 
+    #: Funnel stages, captured at run time. Held separately from `universe` so
+    #: a cached result can be rebuilt without serialising the whole
+    #: UniverseResult (which carries every dropped ticker at every stage).
+    funnel_stages: List[dict] = field(default_factory=list)
+
     def funnel(self) -> List[dict]:
+        if self.funnel_stages:
+            return self.funnel_stages
         return self.universe.funnel() if self.universe else []
 
 
@@ -107,6 +114,7 @@ class Pipeline:
 
         universe = self._scan_universe(criteria, universe_size)
         result.universe = universe
+        result.funnel_stages = universe.funnel() if universe else []
 
         candidates = self._select_candidates(universe, max_candidates)
 
