@@ -893,3 +893,18 @@ def test_engine_carries_the_nlp_stub_without_breaking(synthetic_panel):
     assert "catalyst_sentiment" in engine.panels
     assert engine.panels["catalyst_sentiment"].isna().all().all()
     assert engine.scores().notna().any().any()
+
+
+def test_ridge_tolerates_a_stubbed_factor(panels, synthetic_panel):
+    """The B8 stub is all-NaN; ridge must exclude it, not refuse to fit."""
+    from quant.factors.nlp import CatalystSentiment
+    dates = list(panels.values())[0].index
+    stub = CatalystSentiment()
+    with_stub = dict(panels)
+    with_stub[stub.name] = factor_panel(stub, synthetic_panel, dates)
+
+    train, _ = split_train_test(dates, train_frac=0.7, embargo=21)
+    fitted = fit_ridge_weights(with_stub, synthetic_panel, train, horizon=21)
+
+    assert fitted.weights[stub.name] == 0.0
+    assert sum(abs(w) for w in fitted.weights.values()) == pytest.approx(1.0)

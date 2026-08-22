@@ -275,12 +275,58 @@ class Factor(ABC):
         return f"{type(self).__name__}(name={self.name!r}, lag={self.min_lag_days})"
 
 
-def load_panel(**kwargs) -> Panel:
+def load_panel(
+    tickers=None,
+    apply_universe: bool = True,
+    **kwargs,
+) -> Panel:
     """The one line that swaps synthetic data for Matt's real cache.
+
+    Pulls three things, not one:
+
+      load_wide()      the price frames
+      load_profiles()  sector and market cap -> Panel.securities, without which
+                       sector neutralization silently does nothing
+      build_universe() who was actually IN the universe -> Panel.universe,
+                       without which the cross-section ranks against every
+                       ticker sitting in the cache rather than the names the
+                       screen admitted
+
+    Both extras degrade to None if the cache lacks them, so a bare price cache
+    still produces a working panel.
 
     Imported lazily so `quant/` carries no import-time dependency on the data
     pipelines — the factors stay testable without a populated cache.
     """
     from data.pipelines.prices import load_wide  # noqa: WPS433
 
-    return Panel.from_wide(load_wide(), **kwargs)
+    wide = load_wide(tickers=tickers) if tickers is not None else load_wide()
+
+    securities = None
+    try:
+        from data.pipelines.prices import load_profiles  # noqa: WPS433
+
+        profiles = load_profiles()
+        if "ticker" in profiles.columns:
+            securities = profiles.set_index("ticker")
+    except (FileNotFoundError, ImportError):
+        pass  # bare price cache; sector neutralization stays off
+
+    universe = None
+    if apply_universe:
+        try:
+            from data.pipelines.prices import load_prices  # noqa: WPS433
+            from quant.universe.builder import build_universe  # noqa: WPS433
+
+            if securities is not None:
+                result = build_universe(load_prices(), securities.reset_index())
+                members = set(result.tickers)
+                universe = pd.DataFrame(
+                    [[t in members for t in wide.close.columns]] * len(wide.close.index),
+                    index=wide.close.index,
+                    columns=wide.close.columns,
+                )
+        except (FileNotFoundError, ImportError, KeyError, ValueError):
+            pass  # no universe available; rank against everything in the cache
+
+    return Panel.from_wide(wide, securities=securities, universe=universe, **kwargs)

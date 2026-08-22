@@ -186,7 +186,22 @@ def fit_ridge_weights(
     """
     train = pd.DatetimeIndex(train_dates)
     fwd = forward_returns(panel, horizon=horizon)
-    X, y = _stack(panels, fwd, train)
+
+    # Ridge needs complete rows, and a factor that is entirely absent on the
+    # train window (the B8 stub, before C15 lands) would drop EVERY row via the
+    # dropna in _stack. Exclude those up front and give them zero weight — the
+    # alternative is a fit that cannot run at all while any factor is stubbed.
+    usable = {
+        name: scores for name, scores in panels.items()
+        if scores.reindex(index=train).notna().any().any()
+    }
+    stubbed = [name for name in panels if name not in usable]
+    if not usable:
+        raise ValueError(
+            "Every factor is empty on the train window — nothing to fit."
+        )
+
+    X, y = _stack(usable, fwd, train)
 
     if X.empty:
         raise ValueError("No complete rows in the train window — cannot fit.")
@@ -202,9 +217,12 @@ def fit_ridge_weights(
     if total == 0:
         raise ValueError("Ridge fit returned all-zero coefficients.")
     weights = {n: float(b / total) for n, b in zip(names, beta)}
+    weights.update({n: 0.0 for n in stubbed})
 
     diagnostics = pd.DataFrame(
-        {"coefficient": beta, "weight": [weights[n] for n in names]}, index=names
+        {"coefficient": list(beta) + [0.0] * len(stubbed),
+         "weight": [weights[n] for n in names + stubbed]},
+        index=names + stubbed,
     )
     diagnostics.index.name = "factor"
     diagnostics["n_obs"] = len(X)
