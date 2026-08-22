@@ -46,9 +46,9 @@ class QuantValidator(Agent):
         state.backtest_result = compute_metrics(raw_backtest)
 
         state.risk_metrics = {
-            **compute_risk_metrics(state.backtest_result),
-            "var_95": compute_var(state.backtest_result, confidence=0.95),
-            "var_99": compute_var(state.backtest_result, confidence=0.99),
+            **compute_risk_metrics(raw_backtest),  # the RUN, not the result - it carries weights
+            "var_95": compute_var(raw_backtest, confidence=0.95),
+            "var_99": compute_var(raw_backtest, confidence=0.99),
         }
 
         state.emit("quant_validation", "Backtest and risk checks complete", "done")

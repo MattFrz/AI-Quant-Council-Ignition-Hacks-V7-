@@ -76,6 +76,25 @@ def _to_signal_frame(
     )
 
 
+def _cached_benchmark(index: pd.DatetimeIndex) -> Optional[pd.Series]:
+    """Benchmark daily returns from the local price cache.
+
+    Read from the same cached panel as everything else so it works offline and
+    costs nothing. Returns None if the benchmark is not in the cache, in which
+    case the caller reports an absolute return and says so.
+    """
+    from backend.config import settings
+
+    try:
+        panel = load_wide(tickers=[settings.benchmark_ticker])
+        series = panel.returns.get(settings.benchmark_ticker)
+        return None if series is None else series.reindex(index)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("benchmark %s unavailable (%s) - excess return will be None",
+                    settings.benchmark_ticker, exc)
+        return None
+
+
 def _returns_from_result(result: BacktestResult) -> pd.Series:
     """Recover the daily return series from a result's equity curve.
 
@@ -150,8 +169,12 @@ def run_backtest(
             test_end=close.index[-1].date(),
         )
 
-    # Without a benchmark the result carries an absolute return only. A13 is
-    # explicit that the excess number is the one that stands up to scrutiny.
+    # Without a benchmark the result carries an absolute return only, and any
+    # field downstream that calls itself "alpha" is then a lie - alpha means
+    # excess over a benchmark. Load SPY from the same cache by default so
+    # excess_return is always real.
+    if benchmark_returns is None:
+        benchmark_returns = _cached_benchmark(close.index)
     if benchmark_returns is not None:
         benchmark_returns = benchmark_returns.reindex(close.index)
 
@@ -177,15 +200,53 @@ def compute_metrics(raw: Union[BacktestRun, BacktestResult]) -> BacktestResult:
 def compute_risk_metrics(
     result: Union[BacktestRun, BacktestResult],
     benchmark_returns: Optional[pd.Series] = None,
+    portfolio_value: float = 1_000_000.0,
 ) -> Dict[str, Any]:
-    """Risk panel as a plain dict, for state.risk_metrics."""
+    """Risk panel as a plain dict, for state.risk_metrics.
+
+    Pass the BacktestRun rather than the BacktestResult where possible: the run
+    carries the position weights, which is the only way concentration, average
+    correlation and days-to-liquidate can be computed. Given just the result,
+    those come back None rather than being guessed at.
+    """
+    run: Optional[BacktestRun] = None
     if isinstance(result, BacktestRun):
-        returns = result.returns
-        result = result.result
+        run = result
+        returns = run.returns
+        result = run.result
     else:
         returns = _returns_from_result(result)
 
-    rm = build_risk_metrics(returns, benchmark_returns)
+    # Beta needs a benchmark; load the cached one rather than reporting None.
+    if benchmark_returns is None:
+        benchmark_returns = _cached_benchmark(returns.index)
+
+    weights = None
+    asset_returns = None
+    adv_usd = None
+
+    if run is not None and not run.weights.empty:
+        last = run.weights.iloc[-1]
+        weights = last[last.abs() > 1e-6]
+
+        if len(weights):
+            try:
+                panel = load_wide(tickers=list(weights.index))
+                asset_returns = panel.returns[list(weights.index)]
+                adv_usd = float(panel.adv.iloc[-1].median())
+            except Exception as exc:  # noqa: BLE001
+                log.debug("risk: could not load panel for held names (%s)", exc)
+
+    rm = build_risk_metrics(
+        returns,
+        benchmark_returns=benchmark_returns,
+        weights=weights,
+        asset_returns=asset_returns,
+        position_notional=(
+            float(weights.abs().max()) * portfolio_value if weights is not None and len(weights) else None
+        ),
+        adv_usd=adv_usd,
+    )
 
     return {
         "beta": rm.beta,
@@ -196,6 +257,9 @@ def compute_risk_metrics(
         "risk_band": rm.risk_band.value,
         "var_95": rm.var_95,
         "cvar_95": rm.cvar_95,
+        "concentration": rm.concentration,
+        "avg_correlation": rm.avg_correlation,
+        "days_to_liquidate": rm.days_to_liquidate,
     }
 
 

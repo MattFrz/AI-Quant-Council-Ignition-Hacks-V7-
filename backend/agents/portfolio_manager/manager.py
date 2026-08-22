@@ -160,6 +160,9 @@ class PortfolioManager(Agent):
             max_drawdown=payload.get("max_drawdown"),
             var_95=payload.get("var_95"),
             cvar_95=payload.get("cvar_95"),
+            concentration=payload.get("concentration"),
+            avg_correlation=payload.get("avg_correlation"),
+            days_to_liquidate=payload.get("days_to_liquidate"),
             risk_band=RiskBand(band) if band in {b.value for b in RiskBand} else RiskBand.MEDIUM,
         )
 
