@@ -97,18 +97,69 @@ def events_to_catalysts(
     return catalysts
 
 
+#: Words too common to identify a passage.
+_STOPWORDS = {
+    "the", "and", "for", "with", "that", "this", "from", "was", "were", "has",
+    "have", "had", "are", "its", "our", "their", "will", "would", "been",
+    "company", "quarter", "year", "revenue", "increase", "increased",
+}
+
+
+def _sentences(text: str) -> list:
+    """Split into candidate sentences, discarding table debris.
+
+    Filing text extracted from HTML is full of stripped table cells - runs of
+    numbers, dollar signs and percent signs with no prose. Quoting those makes
+    the audit trail look broken, so they are filtered out here rather than
+    shown to a judge.
+    """
+    import re
+
+    raw = re.split(r"(?<=[.!?])\s+|\n{2,}", text)
+    out = []
+    for s in raw:
+        s = " ".join(s.split())
+        if len(s) < 40:
+            continue
+        letters = sum(c.isalpha() or c.isspace() for c in s)
+        if letters / len(s) < 0.80:
+            continue  # mostly digits and symbols: a table row
+        out.append(s)
+    return out
+
+
 def _extract_verbatim_snippet(source_text: str, description: str, max_len: int = 300) -> str:
+    """Pull the sentence from the source that best matches the claim.
+
+    Never trusts the LLM's paraphrase for the quote field - the quote must be
+    text that actually appears in the filing, or the audit trail is fiction.
+    What this adds over taking the chunk head is relevance: it scores real
+    sentences by keyword overlap with the extracted claim, so each catalyst
+    quotes the passage it was drawn from instead of five catalysts all
+    repeating the same opening table.
     """
-    Pulls a verbatim snippet from the actual chunk text rather than trusting
-    the LLM's paraphrase in `description`. This is a naive best-effort:
-    returns the first max_len chars of the source chunk. If your team wants
-    tighter quote-to-claim matching later, replace this with a sentence
-    boundary search around keywords from `description`.
-    """
-    snippet = source_text.strip()
-    if len(snippet) > max_len:
-        snippet = snippet[:max_len].rsplit(" ", 1)[0] + "..."
-    return snippet
+    sentences = _sentences(source_text)
+    if not sentences:
+        # No prose worth quoting. Fall back to the raw head rather than
+        # returning nothing, since Catalyst requires a non-empty quote.
+        snippet = " ".join(source_text.split())
+        return snippet[:max_len].rsplit(" ", 1)[0] + "..." if len(snippet) > max_len else snippet
+
+    keywords = {
+        w.strip(".,;:()%$").lower()
+        for w in description.split()
+        if len(w) > 3 and w.strip(".,;:()%$").lower() not in _STOPWORDS
+    }
+
+    def score(sentence: str) -> int:
+        low = sentence.lower()
+        return sum(1 for k in keywords if k in low)
+
+    best = max(sentences, key=score)
+    if score(best) == 0:
+        best = sentences[0]  # nothing matched; at least quote real prose
+
+    return best[:max_len].rsplit(" ", 1)[0] + "..." if len(best) > max_len else best
 
 
 def _confidence_for_event_type(event_type: str) -> float:

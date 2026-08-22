@@ -4,7 +4,7 @@ from datetime import date
 
 from backend.rag.vectorstore import VectorStore
 from backend.rag.embeddings import EmbeddingCache
-from data.schemas.filing import FilingChunk
+from data.schemas.filing import Filing, FilingChunk
 from backend.rag.index.build_index import INDEX_PATH, CHUNK_LOOKUP_PATH
 
 _OVERFETCH_MULTIPLIER = 3
@@ -15,6 +15,31 @@ class Retriever:
         self.store = store
         self.chunk_lookup = chunk_lookup
         self._embedder = EmbeddingCache()
+        self._filing_lookup: dict[str, Filing] | None = None
+
+    @property
+    def filing_lookup(self) -> dict[str, Filing]:
+        """{accession_no: Filing}, as to_citations() expects.
+
+        Derived from the chunks rather than stored separately: every chunk
+        already carries accession_no, ticker, form_type, filed_date and
+        source_url, which is exactly a Filing. Keeping one source of truth
+        means a citation can never disagree with the chunk it came from.
+        """
+        if self._filing_lookup is None:
+            filings: dict[str, Filing] = {}
+            for chunk in self.chunk_lookup.values():
+                if chunk.accession_no in filings:
+                    continue
+                filings[chunk.accession_no] = Filing(
+                    accession_no=chunk.accession_no,
+                    ticker=chunk.ticker,
+                    form_type=chunk.form_type,
+                    filed_date=chunk.filed_date,
+                    url=chunk.source_url,
+                )
+            self._filing_lookup = filings
+        return self._filing_lookup
 
     @classmethod
     def load_default(cls) -> "Retriever":
