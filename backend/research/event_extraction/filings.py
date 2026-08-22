@@ -80,20 +80,47 @@ def extract_events_batch(
     return all_events
 
 
-def _parse_json_array(text: str) -> list[dict]:
-    cleaned = text.strip()
-    if cleaned.startswith("```"):
-        cleaned = cleaned.strip("`")
-        if cleaned.startswith("json"):
-            cleaned = cleaned[4:]
-    cleaned = cleaned.strip()
+def _parse_json_array(text: str) -> list:
+    """Best-effort JSON array out of an LLM response.
 
-    if not cleaned:
+    Model output is untrusted input. Three failure modes are common and all of
+    them used to break the run:
+
+      1. Fenced code blocks (```json ... ```)
+      2. Valid JSON wrapped in prose ("Here you go:" ... "Hope that helps!")
+      3. Right shape, wrong item types - a list of bare strings, or nulls
+
+    (3) was the dangerous one: callers do item.get(...), so a list of strings
+    raised AttributeError and killed the whole pipeline, surfacing as "the run
+    randomly produced no catalysts". Only dict items are returned now.
+    """
+    if not text:
         return []
+
+    cleaned = text.strip()
+
+    # Strip a fenced block if present.
+    if cleaned.startswith("```"):
+        cleaned = cleaned.strip("`").strip()
+        if cleaned.lower().startswith("json"):
+            cleaned = cleaned[4:].strip()
+
+    def only_dicts(value):
+        return [v for v in value if isinstance(v, dict)] if isinstance(value, list) else []
 
     try:
-        parsed = json.loads(cleaned)
-        return parsed if isinstance(parsed, list) else []
+        return only_dicts(json.loads(cleaned))
     except json.JSONDecodeError:
-        # extraction found nothing parseable — treat as no events rather than crashing
-        return []
+        pass
+
+    # Recover an array embedded in surrounding prose.
+    start = cleaned.find("[")
+    end = cleaned.rfind("]")
+    if start != -1 and end > start:
+        try:
+            return only_dicts(json.loads(cleaned[start:end + 1]))
+        except json.JSONDecodeError:
+            pass
+
+    return []
+
