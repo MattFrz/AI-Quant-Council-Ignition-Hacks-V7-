@@ -17,9 +17,9 @@ def _hash_text(text: str) -> str:
 
 class EmbeddingCache:
     def __init__(self, cache_dir: Path | None = None, api_key: str | None = None):
-        self.cache_dir = Path(cache_dir or settings.DATA_CACHE_DIR) / "embeddings"
+        self.cache_dir = Path(cache_dir or settings.data_cache_dir) / "embeddings"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self.client = OpenAI(api_key=api_key or settings.LLM_API_KEY)
+        self.client = OpenAI(api_key=api_key or settings.llm_api_key)
 
     def _cache_file(self, text_hash: str) -> Path:
         return self.cache_dir / f"{text_hash}.json"
@@ -56,7 +56,7 @@ class EmbeddingCache:
 
 
 def embed_batch(texts: list[str]) -> list[list[float]]:
-    client = OpenAI(api_key=settings.LLM_API_KEY)
+    client = OpenAI(api_key=settings.llm_api_key)
     response = client.embeddings.create(model=EMBEDDING_MODEL, input=texts)
     # response.data is returned in the same order as the input list
     return [item.embedding for item in response.data]

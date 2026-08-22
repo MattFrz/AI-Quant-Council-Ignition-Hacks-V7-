@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from data.sources.sec_edgar import EdgarClient
-from backend.config import settings  # exposes settings.DATA_CACHE_DIR
+from backend.config import settings  
 
 
 @dataclass
@@ -18,7 +18,7 @@ class Filing:
 
 
 def _cache_path(ticker: str, accession: str) -> Path:
-    cache_dir = Path(settings.DATA_CACHE_DIR) / "filings" / ticker.upper()
+    cache_dir = Path(settings.data_cache_dir) / "filings" / ticker.upper()
     cache_dir.mkdir(parents=True, exist_ok=True)
     return cache_dir / f"{accession}.txt"
 
