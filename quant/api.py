@@ -99,6 +99,8 @@ def run_backtest(
     as_of: DateLike,
     lookback_years: float = 5.0,
     config: Optional[BacktestConfig] = None,
+    window: Optional[BacktestWindow] = None,
+    benchmark_returns: Optional[pd.Series] = None,
 ) -> BacktestRun:
     """Backtest a scored universe using cached prices.
 
@@ -137,16 +139,28 @@ def run_backtest(
         rebalance_freq="ME", max_names=min(10, len(available)), strategy_name="composite_alpha"
     )
 
-    return Backtester(cfg).run(
-        signal=signal,
-        close=close,
-        adv=adv,
-        window=BacktestWindow(
+    # A caller that actually fitted something should pass its real split;
+    # BacktestWindow.is_clean() requires train_end < test_start and answers the
+    # "did you overfit" question. The default below is the no-fitting case.
+    if window is None:
+        window = BacktestWindow(
             train_start=close.index[0].date(),
             train_end=close.index[0].date(),
             test_start=close.index[0].date(),
             test_end=close.index[-1].date(),
-        ),
+        )
+
+    # Without a benchmark the result carries an absolute return only. A13 is
+    # explicit that the excess number is the one that stands up to scrutiny.
+    if benchmark_returns is not None:
+        benchmark_returns = benchmark_returns.reindex(close.index)
+
+    return Backtester(cfg).run(
+        signal=signal,
+        close=close,
+        adv=adv,
+        window=window,
+        benchmark_returns=benchmark_returns,
     )
 
 

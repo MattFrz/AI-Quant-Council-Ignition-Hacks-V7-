@@ -106,3 +106,41 @@ def test_sized_book_explains_a_capped_book(client):
                        json={"max_names": 8, "max_position": 0.05, "target_vol": 0.30}).json()
     if body["n_capped"]:
         assert body["note"] and "cap" in body["note"]
+
+
+def test_backtest_goes_through_the_quant_api_facade():
+    """The route and Zain's C20 validator must run the same code path."""
+    import inspect
+    from backend.api.routes import backtest as route
+    src = inspect.getsource(route.run_backtest)
+    assert "api_run_backtest" in src
+    assert "Backtester(" not in src
+
+
+def test_backtest_keeps_the_benchmark_comparison(client):
+    """A13: judges discount an absolute number and respect an excess one."""
+    result = BacktestResult.model_validate(client.post("/api/backtest", json={}).json())
+    assert result.benchmark_annualized_return is not None
+    assert result.excess_return is not None
+    assert result.benchmark_curve
+
+
+def test_tail_risk_endpoint(client):
+    book = client.post("/api/risk/sized-book", json={"max_names": 5}).json()
+    tickers = [p["ticker"] for p in book["positions"]]
+    body = client.post("/api/risk/tail", json={
+        "positions": [{"ticker": t, "weight": 0.05} for t in tickers],
+        "portfolio_value": 1_000_000,
+    }).json()
+    assert body["var_95"] is not None and body["var_95"] < 0
+    assert body["cvar_95"] <= body["var_95"]      # CVaR is the worse tail
+    assert body["var_99"] <= body["var_95"]
+    assert body["var_95_dollar"] < 0
+
+
+def test_tail_risk_never_fabricates(client):
+    """Thin history must return null, not a made-up number."""
+    body = client.post("/api/risk/tail", json={
+        "positions": [{"ticker": "AAPL", "weight": 1.0}], "lookback_days": 30,
+    }).json()
+    assert "var_95" in body

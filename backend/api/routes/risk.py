@@ -14,6 +14,7 @@ from backend.core.logging import get_logger
 from data.schemas.risk import RiskMetrics
 from quant.optimization.vol_scaling import size_positions
 from quant.risk.metrics import build_risk_metrics
+from quant.risk.var import cvar_historical, var_historical
 
 log = get_logger(__name__)
 router = APIRouter(prefix="/risk", tags=["risk"])
@@ -191,6 +192,55 @@ def sized_book(request: SizingRequest) -> SizedBookResponse:
         risk=metrics,
         note=note,
     )
+
+
+def _clean(value):
+    if value is None:
+        return None
+    try:
+        return None if value != value else float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+@router.post("/tail")
+def tail_risk(request: RiskRequest) -> dict:
+    """Historical VaR and CVaR for a live book.
+
+    Calls var_historical / cvar_historical directly — the same functions
+    quant/api.py wraps for Zain's C20 validator, so the agent's number and the
+    UI's number come from one implementation. The facade's compute_var takes a
+    BacktestRun; at portfolio level there is no backtest to hand it, and
+    manufacturing one just to have it unpicked again would be worse code, not
+    better provenance.
+
+    Returns null rather than a fabricated figure when history is thin.
+    """
+    panel = get_panel()
+    as_of = _as_of_timestamp(request.as_of)
+    weights = pd.Series({p.ticker: p.weight for p in request.positions}, dtype=float)
+
+    unknown = [t for t in weights.index if t not in panel.tickers]
+    if unknown:
+        raise HTTPException(400, f"No price history for {unknown}")
+
+    history = panel.as_of(as_of, lag_days=0)
+    asset_returns = history.returns().iloc[-request.lookback_days:][list(weights.index)]
+    portfolio_returns = (asset_returns * weights).sum(axis=1).dropna()
+
+    var95 = var_historical(portfolio_returns, 0.95)
+    return {
+        "as_of": str(as_of.date()),
+        "n_positions": int(len(weights)),
+        "lookback_days": int(len(portfolio_returns)),
+        "var_95": _clean(var95),
+        "cvar_95": _clean(cvar_historical(portfolio_returns, 0.95)),
+        "var_99": _clean(var_historical(portfolio_returns, 0.99)),
+        "cvar_99": _clean(cvar_historical(portfolio_returns, 0.99)),
+        "var_95_dollar": (
+            None if var95 is None else _clean(var95 * request.portfolio_value)
+        ),
+    }
 
 
 def _clean(value):

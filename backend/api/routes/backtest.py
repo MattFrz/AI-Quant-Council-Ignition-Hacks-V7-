@@ -11,7 +11,8 @@ from pydantic import BaseModel, Field
 
 from backend.core.logging import get_logger
 from data.schemas.backtest_result import BacktestResult, BacktestWindow
-from quant.backtest.engine import Backtester, BacktestConfig
+from quant.api import compute_metrics, run_backtest as api_run_backtest
+from quant.backtest.engine import BacktestConfig
 from quant.factors.base import Panel, load_panel
 from quant.signals.generation import SignalEngine
 
@@ -171,13 +172,24 @@ def run_backtest(request: BacktestRequest) -> BacktestResult:
             test_start=test[0].date(), test_end=test[-1].date(),
         )
 
+    # Through quant/api.py, the shared entry point, so this route and Zain's
+    # C20 validator provably run the same code path.
+    end_stamp = close.index[-1]
+    span_years = max((end_stamp - close.index[0]).days / 365.25, 0.1)
     try:
-        run = Backtester(config).run(signal, close, adv, benchmark_returns=benchmark,
-                                     window=window)
-    except ValueError as exc:
+        run = api_run_backtest(
+            universe=list(close.columns),
+            factor_scores=signal,
+            as_of=end_stamp,
+            lookback_years=span_years,
+            config=config,
+            window=window,
+            benchmark_returns=benchmark,
+        )
+    except (ValueError, TypeError) as exc:
         raise HTTPException(400, str(exc)) from exc
 
-    result = run.result
+    result = compute_metrics(run)
     note = _honesty_note(engine, panel, test)
     if note:
         result.notes = note if not result.notes else f"{result.notes} | {note}"
