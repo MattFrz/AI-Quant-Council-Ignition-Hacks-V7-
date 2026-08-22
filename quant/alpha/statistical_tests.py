@@ -1,4 +1,4 @@
-"""The scoreboard. Step B5 — built BEFORE any more factors get written."""
+"""The scoreboard. Step B5 - built BEFORE any more factors get written."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -30,7 +30,7 @@ class ICSummary:
     n_periods: int
     mean_ic: float
     std_ic: float
-    ir: float                  # mean / std — IC's own Sharpe
+    ir: float                  # mean / std - IC's own Sharpe
     t_stat: float
     p_value: float
     hit_rate: float            # fraction of periods with IC > 0
@@ -146,7 +146,7 @@ def signal_decay(
     method: str = "spearman",
     name: str = "factor",
 ) -> pd.DataFrame:
-    """IC at several horizons — how fast the edge dies."""
+    """IC at several horizons - how fast the edge dies."""
     rows = [information_coefficient(factor_df, panel, h, method, name).as_row() for h in horizons]
     return pd.DataFrame(rows).set_index("horizon")
 

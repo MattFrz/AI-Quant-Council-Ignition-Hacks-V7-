@@ -23,7 +23,7 @@ _MIN_SECTION_CHARS = 300
 
 def chunk_filing(filing: Filing, raw_text: str) -> list[FilingChunk]:
     """
-    embedding_id is deliberately left None here — it's the chunk's row index
+    embedding_id is deliberately left None here - it's the chunk's row index
     in the FAISS index, which doesn't exist until build_index.py actually
     builds it. build_index.py sets it after the fact, not this function.
     """
@@ -83,7 +83,7 @@ def _merge_short_sections(
 
     for label, offset, text in raw_sections:
         if len(text) >= _MIN_SECTION_CHARS:
-            # A real section on its own — flush any accumulated TOC junk
+            # A real section on its own - flush any accumulated TOC junk
             # first, then keep this section standalone with its own label.
             flush()
             merged.append((label, offset, text))
@@ -103,7 +103,7 @@ def split_section(
     overlap: int = OVERLAP_TOKENS,
 ) -> list[tuple[str, int, int]]:
     """
-    Returns (piece_text, local_start, local_end) tuples — offsets relative
+    Returns (piece_text, local_start, local_end) tuples - offsets relative
     to section_text, not the raw filing. chunk_filing adds the section's
     own offset to get char_start/char_end relative to the whole document.
     """

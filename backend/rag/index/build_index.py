@@ -14,7 +14,7 @@ INDEX_PATH = Path(settings.data_cache_dir) / "index" / "filings.faiss"
 CHUNK_LOOKUP_PATH = Path(settings.data_cache_dir) / "index" / "chunk_lookup.json"
 
 # How far back to pull filings by default. Tune this to whatever window
-# your thesis/demo actually needs — leaving it unbounded is what produced
+# your thesis/demo actually needs - leaving it unbounded is what produced
 # 164k chunks off three tickers.
 DEFAULT_LOOKBACK_DAYS = 730
 

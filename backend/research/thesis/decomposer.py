@@ -65,7 +65,7 @@ def _parse_json_response(text: str) -> dict:
 
 
 if __name__ == "__main__":
-    # quick manual smoke test — run with: python -m backend.research.thesis.decomposer
+    # quick manual smoke test - run with: python -m backend.research.thesis.decomposer
     import os
     llm = LLMClient(api_key=os.environ["LLM_API_KEY"])
     result = decompose_thesis("NVDA data center revenue growth is underpriced", llm)

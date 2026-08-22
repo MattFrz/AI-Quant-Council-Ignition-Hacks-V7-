@@ -52,7 +52,7 @@ def _source_type_for(citation: Citation) -> SourceType:
     """
     Maps a citation's form_type to the Catalyst enum. Right now every
     citation flowing through here comes from C12's to_citations() over SEC
-    filings, so this only handles that path — extend when C14's
+    filings, so this only handles that path - extend when C14's
     transcript/news citations start flowing through the same function
     (they'll need their own form_type values, e.g. "TRANSCRIPT" / "NEWS",
     set at the point those citations are built).
@@ -67,9 +67,9 @@ def _source_type_for(citation: Citation) -> SourceType:
 
 # Maps our internal event_type vocabulary to Catalyst's expected "direction"
 # hint. Adjust as your team's factor model (Nalin's B8) settles on what it
-# actually wants — this is a reasonable starting default, not gospel.
+# actually wants - this is a reasonable starting default, not gospel.
 _EVENT_TYPE_DIRECTION = {
-    "guidance_change": Direction.NEUTRAL,  # ambiguous without reading the description — leave to LLM/manual review
+    "guidance_change": Direction.NEUTRAL,  # ambiguous without reading the description - leave to LLM/manual review
     "capex_commentary": Direction.NEUTRAL,
     "segment_shift": Direction.NEUTRAL,
     "margin_commentary": Direction.NEUTRAL,
@@ -87,12 +87,12 @@ def events_to_catalysts(
     """
     Converts extracted events into Catalyst objects, pulling the verbatim
     quote directly from the source chunk (never let the LLM paraphrase the
-    quote field — that's how an unsupported claim slips in).
+    quote field - that's how an unsupported claim slips in).
 
     citation_lookup: {chunk_id: Citation}, built from C12's to_citations()
     over the same chunks that were fed into extract_events.
 
-    Raises if a citation is missing for an event's chunk_id — a Catalyst
+    Raises if a citation is missing for an event's chunk_id - a Catalyst
     without a source_url must never ship, so fail loudly here rather than
     silently dropping the source.
     """
@@ -102,13 +102,13 @@ def events_to_catalysts(
         citation = citation_lookup.get(event.chunk_id)
         if citation is None:
             raise ValueError(
-                f"No citation found for chunk_id={event.chunk_id!r} — "
+                f"No citation found for chunk_id={event.chunk_id!r} - "
                 "every Catalyst must carry a real source_url, refusing to "
                 "fabricate one."
             )
 
         # event_date = when the thing actually happened (from extraction, if
-        # the text stated it). source_date = when the filing became public —
+        # the text stated it). source_date = when the filing became public -
         # THIS is the field is_known_at() checks for the as-of leakage rule,
         # so it must be citation.filed_date, never left empty. Falls back to
         # source_date when the model couldn't find an explicit event date.
@@ -212,11 +212,11 @@ def _extract_verbatim_snippet(source_text: str, description: str, max_len: int =
 
 def _confidence_for_event_type(event_type: str) -> float:
     # filings-sourced events get higher default confidence than the vaguer
-    # 'other' bucket — tune this once you see real extraction output
+    # 'other' bucket - tune this once you see real extraction output
     return 0.5 if event_type == "other" else 0.75
 
 
 if __name__ == "__main__":
-    # After this runs cleanly end-to-end on real data, message Nalin —
+    # After this runs cleanly end-to-end on real data, message Nalin -
     # his nlp.py (B8) is stubbed returning zeros until this lands.
     print("Wire this up against a real chunk + extraction run to smoke-test.")

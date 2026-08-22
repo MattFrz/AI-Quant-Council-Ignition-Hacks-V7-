@@ -40,7 +40,7 @@ class _SurpriseFactor(Factor):
 
     This is the plan's 'earnings surprise' built without analyst estimates,
     which no free data source provides. The expectation is a seasonal random
-    walk — the market expects roughly last year's quarter — and the surprise is
+    walk - the market expects roughly last year's quarter - and the surprise is
     scaled by how variable that company's changes normally are, so a steady
     compounder and a cyclical are not judged on the same scale.
     """
@@ -104,7 +104,7 @@ class PostEarningsDrift(Factor):
 
     Post-earnings announcement drift is one of the most durable anomalies on
     record: prices keep moving in the direction of the surprise for weeks. The
-    factor is deliberately NaN once a report is stale — after the drift window
+    factor is deliberately NaN once a report is stale - after the drift window
     closes this is just momentum wearing an earnings label.
     """
 

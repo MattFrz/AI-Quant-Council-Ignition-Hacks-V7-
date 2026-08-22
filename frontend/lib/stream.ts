@@ -1,5 +1,5 @@
 /**
- * frontend/lib/stream.ts — D2
+ * frontend/lib/stream.ts - D2
  *
  * EventSource consumer for ResearchEvent (the D6 live timeline). In fixture
  * mode it replays the 13-step pipeline from PIPELINE_STEPS on a timer instead

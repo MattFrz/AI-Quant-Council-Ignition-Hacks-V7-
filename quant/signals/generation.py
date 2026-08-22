@@ -128,7 +128,7 @@ class SignalEngine:
         return self.model.rank_date(self._panels, as_of, top_n=top_n)
 
     def scoreboard(self, panel: Panel) -> pd.DataFrame:
-        """Per-factor IC table — the evidence behind the weights."""
+        """Per-factor IC table - the evidence behind the weights."""
         self._require_built()
         return factor_scoreboard(self.factors, panel, horizon=self.horizon,
                                  dates=self._dates)
@@ -155,6 +155,6 @@ class SignalEngine:
         self._require_built()
         if self.model is None:
             raise RuntimeError(
-                "No weights yet — call fit() to learn them, or use_equal_weights() "
+                "No weights yet - call fit() to learn them, or use_equal_weights() "
                 "for the baseline. Weights are never invented here."
             )

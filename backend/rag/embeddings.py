@@ -27,7 +27,7 @@ class EmbeddingCache:
     def get_or_embed(self, chunks: list[FilingChunk]) -> dict[str, list[float]]:
         """
         Returns {chunk_id: embedding_vector}. Checks disk cache by content hash
-        before calling the API — never re-embeds identical text.
+        before calling the API - never re-embeds identical text.
         """
         result: dict[str, list[float]] = {}
         to_embed: list[FilingChunk] = []
@@ -51,7 +51,7 @@ class EmbeddingCache:
         return result
 
     def embed_query(self, query: str) -> list[float]:
-        """No caching for one-off query embeddings — cache is keyed for chunk reuse."""
+        """No caching for one-off query embeddings - cache is keyed for chunk reuse."""
         return embed_batch([query])[0]
 
 

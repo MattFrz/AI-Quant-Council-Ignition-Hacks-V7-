@@ -113,7 +113,7 @@ def fit_ic_weights(
     total = sum(abs(v) for v in raw.values())
     if total == 0:
         raise ValueError(
-            "Every factor scored zero on the train window — nothing survived "
+            "Every factor scored zero on the train window - nothing survived "
             f"min_abs_t={min_abs_t}. Lower the bar or fix the factors; do not "
             "ship an equal-weight fallback and call it fitted."
         )
@@ -153,13 +153,13 @@ def fit_ridge_weights(
     stubbed = [name for name in panels if name not in usable]
     if not usable:
         raise ValueError(
-            "Every factor is empty on the train window — nothing to fit."
+            "Every factor is empty on the train window - nothing to fit."
         )
 
     X, y = _stack(usable, fwd, train)
 
     if X.empty:
-        raise ValueError("No complete rows in the train window — cannot fit.")
+        raise ValueError("No complete rows in the train window - cannot fit.")
 
     names = list(X.columns)
     Xv = X.values

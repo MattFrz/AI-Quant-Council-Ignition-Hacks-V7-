@@ -31,7 +31,7 @@ class OptimizedBook:
         return (
             f"{int((self.weights.abs() > 1e-6).sum())} positions, "
             f"E[r]={self.expected_return:.2%}, vol={self.expected_vol:.2%}, "
-            f"ex-ante Sharpe={self.sharpe_ex_ante:.2f} — {status}"
+            f"ex-ante Sharpe={self.sharpe_ex_ante:.2f} - {status}"
         )
 
 

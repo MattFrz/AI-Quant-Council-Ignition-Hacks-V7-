@@ -6,11 +6,11 @@ from backend.research.event_extraction.filings import (
     ExtractedEvent,
 )
 
-# Reuses the same extraction logic/prompt as filings.py — transcripts are
+# Reuses the same extraction logic/prompt as filings.py - transcripts are
 # noisier text but the extraction shape (event_type + description) is
 # identical. Build this only after filings.py (C13) is solid and tested;
 # this is lower priority per the build order (filings are free, structured,
-# and impossible to argue with — transcripts are neither).
+# and impossible to argue with - transcripts are neither).
 
 
 def extract_events_from_transcript(

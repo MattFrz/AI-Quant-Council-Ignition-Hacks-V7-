@@ -126,7 +126,7 @@ class FreeCashFlowYield(_FundamentalFactor):
     """Trailing free cash flow over point-in-time market cap.
 
     Market cap is price on the decision date times the share count from the
-    last filing — never `securities.market_cap`, which is today's value and
+    last filing - never `securities.market_cap`, which is today's value and
     would leak the future into every historical date.
     """
 
@@ -143,7 +143,7 @@ class FreeCashFlowYield(_FundamentalFactor):
 
 
 class EarningsYield(_FundamentalFactor):
-    """Trailing earnings over point-in-time market cap — inverted P/E."""
+    """Trailing earnings over point-in-time market cap - inverted P/E."""
 
     category = FactorCategory.VALUATION
 

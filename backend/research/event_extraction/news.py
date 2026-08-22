@@ -8,7 +8,7 @@ from backend.research.event_extraction.filings import (
 
 # Same note as transcripts.py: reuses filings.py's extraction logic. News
 # articles are NOT filings, so they don't have a filed_date/source_url in the
-# same schema shape as FilingChunk — whatever news source you pull from
+# same schema shape as FilingChunk - whatever news source you pull from
 # (C14 build order doesn't specify one), make sure you wrap its output into
 # something carrying a real URL and a publish date before this function runs,
 # or C15's Catalyst objects downstream will be missing required fields.

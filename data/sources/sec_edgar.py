@@ -21,7 +21,7 @@ class EdgarClient:
     def __init__(self, user_agent: str):
         """
         user_agent MUST be a real name + email, e.g.
-        'John Doe john@example.com' — EDGAR blocks generic/missing agents.
+        'John Doe john@example.com' - EDGAR blocks generic/missing agents.
         """
         if "@" not in user_agent:
             raise ValueError(
@@ -92,8 +92,8 @@ class EdgarClient:
         (EDGAR submissions.json gives it with dashes, e.g. 0000320193-24-000123).
 
         Returns CLEANED TEXT, not raw HTML. Modern 10-K/10-Q primary
-        documents are inline XBRL — every financial figure is individually
-        tag-wrapped on top of normal HTML — and can be 3-8x larger as raw
+        documents are inline XBRL - every financial figure is individually
+        tag-wrapped on top of normal HTML - and can be 3-8x larger as raw
         markup than as prose. Leaving the markup in blows up both chunk
         count and disk usage, and breaks section-header matching downstream
         since "Item 7" is frequently split across tags. Strip it here so

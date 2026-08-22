@@ -17,7 +17,7 @@ router = APIRouter(prefix="/research", tags=["research"])
 @router.post("", response_model=JobHandle)
 def start_research(request: ThesisRequest):
     """
-    Third stage of the §1 pipeline order (3.2). start_job never blocks —
+    Third stage of the §1 pipeline order (3.2). start_job never blocks -
     it either replays a cached result instantly or spins up a background
     thread and returns right away (see job_runner.py's own docstring).
     """

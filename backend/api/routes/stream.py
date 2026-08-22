@@ -11,13 +11,13 @@ router = APIRouter(prefix="/research", tags=["research"])
 @router.get("/stream/{job_id}")
 async def stream_research(job_id: str):
     """
-    stream_events() (3.6) is a plain sync generator — it blocks on
+    stream_events() (3.6) is a plain sync generator - it blocks on
     queue.get(timeout=1.0) internally. Passing a sync generator directly as
     StreamingResponse's content is the correct move here: Starlette detects
     it's not an async generator and automatically wraps it with
     iterate_in_threadpool, so the blocking queue.get() runs on a worker
     thread instead of the event loop. This is what avoids the timeout
-    problem — no manual `async for` needed, and manually iterating it
+    problem - no manual `async for` needed, and manually iterating it
     inside an `async def` body would reintroduce exactly the blocking bug
     being avoided here.
     """

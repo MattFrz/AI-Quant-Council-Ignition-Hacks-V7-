@@ -58,17 +58,20 @@ write it.
 the portfolio, and you get told why:
 
 ```
-ACCEPTED  NGSM   5.0%   alpha 8.7   confidence 0.82
-REJECTED  WEAK          quant validator rejected the idea
-                        confidence 0.22 below minimum 0.55
+EXCLUDED  VRT           risk_band=high requires confidence >= 0.75, got 0.73
 ```
 
-**It tells you when it doesn't know.** Our strategy returns 9.78% annualised
-excess return over SPY at a Sharpe of 1.03. It also has an out of sample
-information coefficient of 0.02 with a t stat of 0.67, which is not
-statistically significant. Every backtest we return carries that caveat in the
-response itself. A Sharpe ratio cannot leave this system without the evidence
-sitting next to it.
+That is a real run. Vertiv scored 9.4 out of 10 on the alpha model and survived
+the backtest, and the portfolio layer still refused to fund it: a
+60%-volatility name needs stronger conviction than the evidence supported. The
+system is allowed to say no to its own recommendation.
+
+**It tells you when it doesn't know.** Our strategy returns 5.0% annualised
+excess return over SPY at a Sharpe of 1.22, after commission and
+participation-rate slippage. The event study we run over the extracted
+catalysts usually finds too few independent events to reach significance, and
+reports that count rather than a number. A Sharpe ratio cannot leave this system
+without the evidence sitting next to it.
 
 We are showing you a number that makes us look worse because that is the whole
 point of the thing. A tool that always agrees with you is what we built this to

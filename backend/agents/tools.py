@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 # Tool schemas exposed to the LLM via LLMClient.complete_with_tools (C1).
-# Keep this surface small (2-3 functions) — only what the debate agents
+# Keep this surface small (2-3 functions) - only what the debate agents
 # genuinely need to call, not every quant function that exists.
 
 TOOLS = [

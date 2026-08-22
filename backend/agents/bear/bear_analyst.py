@@ -4,15 +4,15 @@ from backend.agents.base import Agent
 from backend.agents.state import ResearchState
 from backend.agents.prompts import BEAR_ANALYST_PROMPT
 
-# Fixed attack checklist from the §4 spec — kept as a constant here (not
+# Fixed attack checklist from the §4 spec - kept as a constant here (not
 # buried in the prompt string) so it's easy to extend without hunting
 # through prompts.py.
 BEAR_ATTACK_CHECKLIST = [
-    "Valuation — is this already expensive relative to peers/history?",
-    "Already priced in — does the market already reflect this thesis?",
-    "Margin pressure — are costs or competition eroding margins?",
-    "Crowding — is this a consensus trade with a crowded-exit risk?",
-    "Historical false positives — have similar setups failed before?",
+    "Valuation - is this already expensive relative to peers/history?",
+    "Already priced in - does the market already reflect this thesis?",
+    "Margin pressure - are costs or competition eroding margins?",
+    "Crowding - is this a consensus trade with a crowded-exit risk?",
+    "Historical false positives - have similar setups failed before?",
 ]
 
 
@@ -20,7 +20,7 @@ class BearAnalyst(Agent):
     """
     Gets the SAME evidence as BullAnalyst, plus the quant stats (backtest +
     risk, populated by QuantValidator) and the fixed attack checklist.
-    Requires QuantValidator (C20) to have already run — sequence it after
+    Requires QuantValidator (C20) to have already run - sequence it after
     C20 in the orchestrator so state.backtest_result / risk_metrics exist.
     """
 
@@ -42,7 +42,7 @@ class BearAnalyst(Agent):
                     f"Quant results:\n{quant_block}\n\n"
                     f"Attack checklist (address each explicitly if relevant):\n{checklist_block}\n\n"
                     "Build the strongest bear case, engaging directly with "
-                    "the quant numbers above — a bear case that ignores the "
+                    "the quant numbers above - a bear case that ignores the "
                     "numbers reads as generic and will be discounted."
                 ),
             },
@@ -117,7 +117,7 @@ class BearAnalyst(Agent):
         )
     def _format_quant(self, state: ResearchState) -> str:
         if state.backtest_result is None:
-            return "(quant results not yet available — QuantValidator must run before BearAnalyst)"
+            return "(quant results not yet available - QuantValidator must run before BearAnalyst)"
         bt = state.backtest_result
         risk = state.risk_metrics or {}
 

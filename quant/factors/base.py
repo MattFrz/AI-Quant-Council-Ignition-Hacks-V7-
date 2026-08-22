@@ -36,7 +36,7 @@ class Panel:
             )
         if not self.adj_close.index.is_monotonic_increasing:
             raise ValueError(
-                "Panel dates must be sorted ascending — as_of() slices positionally "
+                "Panel dates must be sorted ascending - as_of() slices positionally "
                 "and would silently return the wrong window otherwise."
             )
         if self.adj_close.index.has_duplicates:
@@ -50,7 +50,7 @@ class Panel:
             if missing:
                 raise ValueError(
                     f"Panel.fundamentals is missing {sorted(missing)}. report_date is not "
-                    "optional — it is the field the whole as-of join keys on."
+                    "optional - it is the field the whole as-of join keys on."
                 )
 
     # ---- shape -------------------------------------------------------------
@@ -143,7 +143,7 @@ class Panel:
             if frame is None:
                 if required:
                     raise AttributeError(
-                        f"load_wide() result has no `.{name}` — Panel.from_wide needs "
+                        f"load_wide() result has no `.{name}` - Panel.from_wide needs "
                         "at least `.close` (adjusted) and `.volume`."
                     )
                 return None

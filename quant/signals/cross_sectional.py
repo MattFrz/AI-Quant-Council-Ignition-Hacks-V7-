@@ -58,7 +58,7 @@ def rank_panel(raw: pd.DataFrame, pct: bool = True) -> pd.DataFrame:
 
 
 def demean_by_group(df: pd.DataFrame, groups: pd.Series) -> pd.DataFrame:
-    """Subtract the group mean within each date — sector neutralization."""
+    """Subtract the group mean within each date - sector neutralization."""
     g = groups.reindex(df.columns)
     if g.isna().all():
         return df

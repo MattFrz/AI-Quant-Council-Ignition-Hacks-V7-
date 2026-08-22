@@ -8,7 +8,7 @@ from backend.agents.prompts import BULL_ANALYST_PROMPT
 class BullAnalyst(Agent):
     """
     Builds the strongest long case grounded ONLY in retrieved evidence.
-    No outside knowledge injected — if the case doesn't trace back to a
+    No outside knowledge injected - if the case doesn't trace back to a
     retrieved chunk, that's a prompt problem, not something to patch after.
     """
 

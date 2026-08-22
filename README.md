@@ -16,11 +16,12 @@ thing through a backtest that is allowed to reject it.
 **The LLM proposes. The quantitative engine decides.** The model never emits a
 Sharpe ratio, an alpha score, a factor weight or a VaR.
 
-Our own strategy returns **+9.78% annualised excess against SPY at Sharpe 1.03**
-,  and an out-of-sample information coefficient of 0.02, t = 0.67, which is **not
-statistically significant**. Every backtest response says so in its own payload.
-We report that because it is the entire product: a tool that only ever agrees
-with you is the thing this replaces.
+Our own strategy returns **+5.0% annualised excess against SPY at Sharpe 1.22**,
+after commission and participation-rate slippage. The event study on the
+catalysts we extract typically finds **too few independent events to be
+statistically significant**, and reports that rather than a number. We say so
+because it is the entire product: a tool that only ever agrees with you is the
+thing this replaces.
 
 | | |
 |---|---|
@@ -28,7 +29,7 @@ with you is the thing this replaces.
 | [Architecture](docs/architecture.md) | The pipeline, the contract, the look-ahead defence |
 | [Who built what](docs/team_ownership.md) | Four lanes, four owners |
 
-**IgnitionHacks V7 · Fintech**, Matt, Nalin, Zain, Cecile
+**IgnitionHacks V7 - Fintech**, Matt, Nalin, Zain, Cecile
 
 ---
 
@@ -95,11 +96,61 @@ python scripts/verify_contract.py
 6. **Report the real numbers.** Whatever the backtest returns is what the slide
    says.
 
+## Thesis syntax
+
+Plain English. Three things the system reads beyond the topic:
+
+| You write | It does |
+|---|---|
+| `Is NVIDIA underpriced given AI capex?` | researches NVDA specifically |
+| `...AI data-center spending that isn't Vertiv` | excludes VRT from candidates |
+| `Find companies benefiting from...` | open discovery, ranks the universe |
+
+Naming a company steers which one gets researched. It does not change the score:
+a directed name still receives whatever alpha rank the quant model gives it.
+
+## Demo cache
+
+A full run takes 60 to 90 seconds. Warm it first and it replays in under a
+second, with the same data.
+
+```bash
+python -m backend.core.cache warm
+python -m backend.core.cache            # list what is warmed
+```
+
+**After any backend change that alters what a run produces, clear and re-warm.**
+A cached run stores its own event list, so a stale entry replays older output
+and looks like a bug that only affects some prompts.
+
+```bash
+python -m backend.core.cache clear && python -m backend.core.cache warm
+```
+
 ## Status
 
-- [x] Phase 0 - foundation, runs on all four machines
-- [x] Phase 1 - data contract frozen, fixture validates
-- [ ] Phase 2 - four parallel lanes
-- [ ] Phase 3 - integration
-- [x] Phase 4 - C++ execution simulation (conditional)
+- [x] Phase 0 - foundation
+- [x] Phase 1 - data contract frozen
+- [x] Phase 2 - factors, agents, retrieval, backtester, risk engine
+- [x] Phase 3 - integration, pipeline live end to end
+- [x] Phase 4 - C++ order book and execution simulation
 - [ ] Phase 5 - demo hardening
+
+## Known limits
+
+Stated here rather than left for a reader to discover.
+
+- The retrieval corpus covers **17 companies**; the quant model scores **483**.
+  Deep research only runs where filings exist to cite.
+- The backtest runs on the **7 ranked candidates**, not the full universe.
+- **No walk-forward split in the demo path.** `run_walk_forward` exists and is
+  tested, but the live pipeline runs a single in-sample window.
+- The **C++ execution simulator is built and tested but not wired into the
+  backtest.** Slippage uses the Python participation-rate model.
+- The universe is the **current** S&P 500, so backtests carry survivorship bias.
+  `scripts/run_backtest.py` prints that warning itself.
+- Event studies usually have **too few independent events** to reach
+  significance, and report the count instead of a number.
+
+**Not financial advice.** A research tool that produces auditable evidence, not
+trade instructions.

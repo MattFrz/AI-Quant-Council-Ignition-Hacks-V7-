@@ -11,7 +11,7 @@ class PortfolioManager(Agent):
     """
     Final synthesis. Same boundary as QuantValidator: the LLM only writes
     pm_rationale (narrative). Every numeric field on TradeIdea comes from
-    state, populated by earlier agents/lanes — never from this LLM call.
+    state, populated by earlier agents/lanes - never from this LLM call.
     """
 
     def run(self, state: ResearchState) -> TradeIdea:
@@ -20,7 +20,7 @@ class PortfolioManager(Agent):
         if state.backtest_result is None or state.risk_metrics is None:
             raise ValueError(
                 "PortfolioManager requires backtest_result and risk_metrics "
-                "on state — run QuantValidator first."
+                "on state - run QuantValidator first."
             )
 
         messages = [
@@ -318,6 +318,39 @@ class PortfolioManager(Agent):
         return self._score_entry(state, ticker).get("signal_contributions", [])
 
     def _confidence_from_agreement(self, state: ResearchState) -> float:
-        # placeholder heuristic — tune once you have real bull/bear/quant output
-        # to calibrate against
-        return 0.6
+        """How much the evidence and the quant results back this idea.
+
+        Three components, each measured rather than asserted:
+
+          verdict   did the signal survive validation
+          evidence  how many cited catalysts support the name
+          quant     risk-adjusted return of the backtested signal
+
+        This was previously hardcoded to 0.60 for every run, which had a
+        consequence nobody noticed until the portfolio screen was opened: the
+        sizing rules require confidence >= 0.75 for a high-risk name, so no
+        high-volatility idea could EVER be funded and the portfolio was
+        permanently empty. A constant is not a heuristic.
+        """
+        bt = state.backtest_result
+
+        verdict = self._verdict(state)
+        verdict_score = {
+            Verdict.SURVIVED: 1.0,
+            Verdict.INCONCLUSIVE: 0.4,
+            Verdict.REJECTED: 0.0,
+        }.get(verdict, 0.3)
+
+        # Evidence: saturates at 10 catalysts for the recommended name.
+        ticker = getattr(state, "primary_ticker", None)
+        cited = [c for c in state.catalysts if not ticker or c.ticker == ticker]
+        evidence_score = min(len(cited) / 10.0, 1.0)
+
+        # Quant: a Sharpe of 2 or better is full marks.
+        sharpe = getattr(bt, "sharpe", None) or 0.0
+        quant_score = min(max(float(sharpe) / 2.0, 0.0), 1.0)
+
+        confidence = 0.40 * verdict_score + 0.30 * evidence_score + 0.30 * quant_score
+
+        # Never claim certainty, and never claim nothing.
+        return round(min(max(confidence, 0.05), 0.95), 2)

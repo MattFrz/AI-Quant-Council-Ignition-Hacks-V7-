@@ -1,4 +1,4 @@
-"""Tests for the EDGAR companyfacts pipeline. Offline — no network."""
+"""Tests for the EDGAR companyfacts pipeline. Offline - no network."""
 from __future__ import annotations
 
 import pandas as pd

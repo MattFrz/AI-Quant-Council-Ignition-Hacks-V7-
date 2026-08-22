@@ -21,7 +21,7 @@ class ResearchAgent(Agent):
     def run(self, state: ResearchState) -> ResearchState:
         plan = getattr(state, "plan", None)
         if not plan:
-            raise ValueError("ResearchAgent requires state.plan — run ResearchPlanner first")
+            raise ValueError("ResearchAgent requires state.plan - run ResearchPlanner first")
 
         for step in plan:
             state.emit(step.id, step.label, "in_progress")
@@ -32,6 +32,6 @@ class ResearchAgent(Agent):
             citations = to_citations(results, self.retriever.filing_lookup)
             state.citations = getattr(state, "citations", []) + citations
 
-            state.emit(step.id, f"{step.label} — found {len(results)} sources", "done")
+            state.emit(step.id, f"{step.label} - found {len(results)} sources", "done")
 
         return state

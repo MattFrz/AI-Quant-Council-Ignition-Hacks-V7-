@@ -1,4 +1,4 @@
-"""Shared test fixtures — chiefly the synthetic market."""
+"""Shared test fixtures - chiefly the synthetic market."""
 from __future__ import annotations
 
 import sys

@@ -1,4 +1,4 @@
-"""Catalyst and sentiment factor. Step B8 — WAITS ON ZAIN'S C15."""
+"""Catalyst and sentiment factor. Step B8 - WAITS ON ZAIN'S C15."""
 from __future__ import annotations
 
 from datetime import date as Date

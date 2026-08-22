@@ -54,7 +54,7 @@ class Retriever:
     def retrieve(self, query: str, as_of: date, k: int = 10) -> list[FilingChunk]:
         """
         CRITICAL: filed_date now lives directly on FilingChunk (confirmed by
-        the runtime schema, not the earlier paste) — filter reads it off the
+        the runtime schema, not the earlier paste) - filter reads it off the
         chunk directly, no join needed.
         """
         query_vector = self._embedder.embed_query(query)

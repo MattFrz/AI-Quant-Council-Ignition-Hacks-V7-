@@ -94,7 +94,7 @@ def find_similar_setups(
     if (target_ts, target_ticker) not in features.index:
         raise KeyError(
             f"{target_ticker} has no complete factor vector on "
-            f"{target_ts.date()} — cannot match a setup that was never scored."
+            f"{target_ts.date()} - cannot match a setup that was never scored."
         )
     target_vec = features.loc[(target_ts, target_ticker)].to_numpy(dtype=float)
 

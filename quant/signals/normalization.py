@@ -75,7 +75,7 @@ def normalize(
 
 
 def rank_normalize(s: pd.Series, min_obs: int = MIN_OBS) -> pd.Series:
-    """Rank first, then z-score the ranks — a uniform mapped to roughly normal."""
+    """Rank first, then z-score the ranks - a uniform mapped to roughly normal."""
     valid = s.dropna()
     if len(valid) < min_obs:
         return pd.Series(np.nan, index=s.index, name=s.name, dtype=float)

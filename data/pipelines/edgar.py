@@ -22,9 +22,9 @@ def pull_filings_for_tickers(
     """
     For each ticker, pulls filing metadata + cleaned document text, caching
     to disk. Returns {ticker: [Filing, ...]} using the REAL Filing schema
-    (data/schemas/filing.py) — not a local dataclass.
+    (data/schemas/filing.py) - not a local dataclass.
 
-    `since` is not optional in practice — leaving it None pulls EVERY
+    `since` is not optional in practice - leaving it None pulls EVERY
     filing EDGAR has for that ticker/form combination, which for 8-Ks in
     particular means decades of material-event filings. Callers should
     pass a real cutoff (build_index.py now does).
@@ -35,7 +35,7 @@ def pull_filings_for_tickers(
 
     KNOWN GOTCHA: EDGAR sometimes returns amended form types like "10-K/A"
     which won't match FormType's fixed enum values and will raise a
-    pydantic ValidationError here. Not handled yet — if you hit this,
+    pydantic ValidationError here. Not handled yet - if you hit this,
     either extend FormType or filter these out before constructing Filing.
     """
     results: dict[str, list[Filing]] = {}
@@ -77,7 +77,7 @@ def load_cached_filing_text(ticker: str, accession_no: str) -> str:
     cache_file = _cache_path(ticker, accession_no)
     if not cache_file.exists():
         raise FileNotFoundError(
-            f"No cached filing for {ticker}/{accession_no} — run pull_filings_for_tickers first."
+            f"No cached filing for {ticker}/{accession_no} - run pull_filings_for_tickers first."
         )
     return cache_file.read_text(encoding="utf-8")
 

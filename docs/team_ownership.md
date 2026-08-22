@@ -13,8 +13,8 @@ days-to-liquidate. Integration: `services/pipeline.py`, the job runner and the
 result cache. Phase 4 in C++, a price-level order book, a Nasdaq ITCH parser
 and a fill simulator with queue position, behind pybind11.
 
-`data/sources/` · `data/pipelines/prices.py` · `quant/universe/` ·
-`quant/backtest/` · `quant/risk/` · `cpp/` · `backend/services/`
+`data/sources/` - `data/pipelines/prices.py` - `quant/universe/` -
+`quant/backtest/` - `quant/risk/` - `cpp/` - `backend/services/`
 
 ## Nalin, factors, alpha model, statistical testing
 
@@ -31,9 +31,9 @@ sizing, equal-risk-contribution and mean-variance optimisers.
 Also the SEC EDGAR companyfacts pipeline, 5,629 point-in-time quarters keyed on
 publication date rather than fiscal period, and the quant-facing API routes.
 
-`quant/factors/` · `quant/signals/` · `quant/alpha/` · `quant/eventstudy/` ·
-`quant/optimization/` · `data/pipelines/fundamentals.py` ·
-`backend/api/routes/{backtest,risk}.py` · `notebooks/`
+`quant/factors/` - `quant/signals/` - `quant/alpha/` - `quant/eventstudy/` -
+`quant/optimization/` - `data/pipelines/fundamentals.py` -
+`backend/api/routes/{backtest,risk}.py` - `notebooks/`
 
 ## Zain, retrieval, research agent, the debate
 
@@ -47,8 +47,8 @@ news. Catalyst objects carrying verbatim quotes and resolvable source URLs. The
 bull and bear analysts, the quant validator, the portfolio manager, and the
 orchestrator that sequences them while emitting timeline events.
 
-`backend/agents/` · `backend/rag/` · `backend/research/` ·
-`data/sources/sec_edgar.py` · `data/pipelines/edgar.py`
+`backend/agents/` - `backend/rag/` - `backend/research/` -
+`data/sources/sec_edgar.py` - `data/pipelines/edgar.py`
 
 ## Cecile, product, portfolio construction, integration
 
@@ -58,8 +58,8 @@ reasons it was excluded, so a rejection is explainable rather than silent. The
 API client and the research event stream. The Base44 dashboard built against the
 published OpenAPI spec. Deployment, CORS, and the demo workflow.
 
-`backend/portfolio/` · `backend/api/routes/portfolio.py` ·
-`backend/api/deps.py` · `frontend/lib/` · the Base44 app
+`backend/portfolio/` - `backend/api/routes/portfolio.py` -
+`backend/api/deps.py` - `frontend/lib/` - the Base44 app
 
 ## Shared, by agreement
 

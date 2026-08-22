@@ -90,7 +90,7 @@ class CompositeModel:
         as_of,
         alpha_score: Optional[float] = None,
     ) -> AlphaBreakdown:
-        """One `AlphaBreakdown` — the object that lands in `TradeIdea.alpha`."""
+        """One `AlphaBreakdown` - the object that lands in `TradeIdea.alpha`."""
         self._check_inputs(panels)
         ts = pd.Timestamp(as_of)
         scale = self._scale_frame(panels).at[ts, ticker]
@@ -111,7 +111,7 @@ class CompositeModel:
                 )
             )
 
-        # Derived from the parts, never computed separately — check_sums() is a.
+        # Derived from the parts, never computed separately - check_sums() is a.
         composite = float(sum(c.contribution for c in contributions))
 
         if alpha_score is None:
@@ -159,7 +159,7 @@ def equal_weight_model(
     panels: Mapping[str, pd.DataFrame],
     categories: Optional[Mapping[str, FactorCategory]] = None,
 ) -> CompositeModel:
-    """Equal weights — the baseline any fitted model has to beat."""
+    """Equal weights - the baseline any fitted model has to beat."""
     n = len(panels)
     return CompositeModel(
         weights={name: 1.0 / n for name in panels},

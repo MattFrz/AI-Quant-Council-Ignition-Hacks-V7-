@@ -6,7 +6,7 @@ from backend.agents.llm_client import LLMClient
 from backend.agents.orchestrator import run_pipeline
 from backend.rag.retrieval.retriever import Retriever
 
-# A small fixed set of theses. Keep this list short (3-5) and stable —
+# A small fixed set of theses. Keep this list short (3-5) and stable -
 # the point is catching regressions after a prompt tweak, not broad coverage.
 EVAL_THESES = [
     "NVDA data center revenue growth is underpriced",
@@ -45,7 +45,7 @@ def run_eval(
     llm: LLMClient, retriever: Retriever, form_type_lookup: dict[str, str]
 ) -> EvalReport:
     """
-    Doesn't grade quality — checks structural health: did every stage
+    Doesn't grade quality - checks structural health: did every stage
     produce non-null output, does every catalyst carry a source_url. That
     catches most regressions (e.g. "I tweaked the bull prompt and now
     bear_case is empty") without needing a human grader in the loop.

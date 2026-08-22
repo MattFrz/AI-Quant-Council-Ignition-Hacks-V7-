@@ -30,7 +30,7 @@ CACHE_MISSING = (
 def get_panel() -> Panel:
     """The price panel, loaded once per process.
 
-    risk.py imports this too — one cache, one disk read. When Matt's
+    risk.py imports this too - one cache, one disk read. When Matt's
     quant/api.py facade lands this should point at it instead.
     """
     try:
@@ -53,7 +53,7 @@ def daily_signal(engine: SignalEngine, panel: Panel) -> pd.DataFrame:
 
     The engine scores on rebalance dates only. The backtester aligns signal and
     prices by INTERSECTION, so handing it a monthly frame silently collapses the
-    run to ~60 days and annualizes it into a nonsense number — 3900% in testing.
+    run to ~60 days and annualizes it into a nonsense number - 3900% in testing.
     Forward-filling onto the trading-day index is what keeps that honest.
     """
     return engine.scores().reindex(panel.adj_close.index).ffill()
@@ -62,7 +62,7 @@ def daily_signal(engine: SignalEngine, panel: Panel) -> pd.DataFrame:
 # ------------------------------------------------------------------- payloads
 
 class BacktestRequest(BaseModel):
-    """Defined here rather than in api/schemas.py — that file is the frozen
+    """Defined here rather than in api/schemas.py - that file is the frozen
     Phase 1 contract and this is a route-local input."""
 
     start: Optional[Date] = None
@@ -117,7 +117,7 @@ def _honesty_note(engine: SignalEngine, panel: Panel, test_dates) -> Optional[st
         return (f"Out-of-sample IC {oos.mean_ic:+.4f} (t={oos.t_stat:+.2f}, "
                 f"p={oos.p_value:.3f}) over {oos.n_periods} periods.")
     return (f"CAVEAT: the underlying signal is NOT statistically significant "
-            f"out of sample — IC {oos.mean_ic:+.4f}, t={oos.t_stat:+.2f}, "
+            f"out of sample - IC {oos.mean_ic:+.4f}, t={oos.t_stat:+.2f}, "
             f"p={oos.p_value:.3f} over {oos.n_periods} periods. Returns below "
             f"are real arithmetic on a signal that has not been shown to predict.")
 
@@ -202,7 +202,7 @@ def factor_scoreboard(
     horizon: int = 21,
     include_fundamentals: bool = False,
 ) -> ScoreboardResponse:
-    """Per-factor information coefficients — where the weights come from."""
+    """Per-factor information coefficients - where the weights come from."""
     panel = get_panel()
     engine = get_engine(0.6, include_fundamentals)
     board = engine.scoreboard(panel)

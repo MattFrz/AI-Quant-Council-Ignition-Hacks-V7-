@@ -66,7 +66,7 @@ def test_scoreboard_flags_insignificance(client):
 
 
 def test_scoreboard_json_has_no_nan(client):
-    """NaN is not valid JSON — the stubbed NLP factor must serialize as null."""
+    """NaN is not valid JSON - the stubbed NLP factor must serialize as null."""
     raw = client.get("/api/backtest/scoreboard").text
     assert "NaN" not in raw
 

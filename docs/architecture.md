@@ -144,12 +144,19 @@ a less impressive number, never to a broken demo.
 
 ## Honest limits
 
-- No factor is statistically significant on an 80-name universe. Cross-sectional
-  models need breadth; 80 large caps is not enough.
-- Out-of-sample information coefficient drops roughly 65% from in-sample.
-- Eighteen factors were tested and one cleared p < 0.05. That is what chance
-  alone predicts, and we do not claim it.
-- The backtest is long-only, monthly, and ignores borrow and taxes.
+- The retrieval corpus covers 17 companies. The quant model scores 483, but deep
+  research only runs where filings exist to cite.
+- The backtest runs on the 7 ranked candidates, not the full universe, and is
+  long-only, monthly, and ignores borrow and taxes.
+- The live pipeline runs a single in-sample window. `run_walk_forward` exists
+  and is tested, but is not on the demo path.
+- Event studies over extracted catalysts usually have too few independent events
+  to reach significance. Catalysts drawn from one filing are one event, not
+  many, and are deduplicated before the study runs.
+- The universe is the current S&P 500, so backtests carry survivorship bias.
+  `scripts/run_backtest.py` prints that warning itself.
+- The C++ execution simulator is built and tested but not wired into the
+  backtest. Slippage uses the Python participation-rate model.
 
 Every backtest response carries its own significance in `BacktestResult.notes`,
 so a Sharpe ratio cannot leave the system without the evidence for it attached.

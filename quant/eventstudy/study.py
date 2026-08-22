@@ -114,7 +114,7 @@ def event_study(
     if n < min_events:
         raise ValueError(
             f"Only {n} usable events (need {min_events}). An event study on a "
-            "handful of cases is an anecdote — report the count or do not report it."
+            "handful of cases is an anecdote - report the count or do not report it."
         )
 
     car = np.cumsum(np.vstack(paths), axis=1)      # n_events x window

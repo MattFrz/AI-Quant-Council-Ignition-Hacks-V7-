@@ -1,5 +1,5 @@
 /**
- * frontend/lib/api.ts — D1
+ * frontend/lib/api.ts - D1
  *
  * Every screen calls through this file, never `fetch()` directly. In fixture
  * mode (NEXT_PUBLIC_USE_FIXTURE=true, the Phase 2 default) every function

@@ -18,7 +18,7 @@ def to_citation(chunk: FilingChunk, filing: Filing) -> Citation:
     """
     filed_date and source_url come from the parent Filing (chunk doesn't
     carry either). form_type technically lives on both Filing and
-    FilingChunk — read it off the chunk since that's the object callers
+    FilingChunk - read it off the chunk since that's the object callers
     already have in hand.
     """
     form_type_value = chunk.form_type.value if hasattr(chunk.form_type, "value") else chunk.form_type
@@ -33,7 +33,7 @@ def to_citation(chunk: FilingChunk, filing: Filing) -> Citation:
 
 def to_citations(chunks: list[FilingChunk], filing_lookup: dict[str, Filing]) -> list[Citation]:
     """
-    filing_lookup: {accession_no: Filing} — pass retriever.filing_lookup
+    filing_lookup: {accession_no: Filing} - pass retriever.filing_lookup
     directly from the call site (e.g. research_agent.py).
     """
     citations = []

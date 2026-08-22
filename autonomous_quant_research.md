@@ -1,4 +1,4 @@
-# Autonomous Quant Research — IgnitionHacks
+# Autonomous Quant Research - IgnitionHacks
 
 ## Project: AI Hedge Fund / Autonomous Alpha Researcher
 
@@ -8,11 +8,11 @@
 
 Instead of asking:
 
-> “Will NVDA go up?”
+> "Will NVDA go up?"
 
 the user asks:
 
-> **“Find companies benefiting from the AI data-center buildout that the market may be underpricing.”**
+> **"Find companies benefiting from the AI data-center buildout that the market may be underpricing."**
 
 The system does the rest.
 
@@ -117,7 +117,7 @@ Expected alpha: **+9.8%**
 
 The AI should never simply say:
 
-> “AI says BUY.”
+> "AI says BUY."
 
 Instead, show exactly why.
 
@@ -141,7 +141,7 @@ Instead, show exactly why.
 
 Then:
 
-> **“These events historically preceded positive earnings revisions.”**
+> **"These events historically preceded positive earnings revisions."**
 
 The system should show the underlying statistical evidence and link each important claim to its source.
 
@@ -205,7 +205,7 @@ Then produces the final trade idea.
 # 5. Team Architecture
 
 
-**Matt — Quant / Market Infrastructure**
+**Matt - Quant / Market Infrastructure**
 Core trading engine
 Market-data pipeline
 C++ quantitative components
@@ -218,7 +218,7 @@ Risk engine
 Realistic execution using your Nasdaq ITCH infrastructure
 Integrate the quantitative engine with the rest of the system
 
-**Quant / Data / ML — Nalin**
+**Quant / Data / ML - Nalin**
 Core research engine
 Factor construction
 Signal generation
@@ -232,7 +232,7 @@ Cross-sectional analysis
 Backtest validation
 Research datasets and pipelines
 
-**ML / AI — Zain**
+**ML / AI - Zain**
 Autonomous Research Agent
 Core intelligence
 LLM orchestration
@@ -246,7 +246,7 @@ Automated hypothesis generation
 Agent evaluation
 Model/inference optimization
 
-**Product + Integration — Cecile**
+**Product + Integration - Cecile**
 Instead of making #4 a full-stack developer:
 Use Base44 to rapidly build the dashboard/UI
 Connect the frontend to your APIs
@@ -351,7 +351,7 @@ Possible providers:
 
 - OpenAI
 - Google Gemini
-- Anthropic Claude
+- Cohere
 
 For a $40 budget, choose **one primary model provider** rather than paying for several.
 
@@ -450,7 +450,7 @@ For the hackathon MVP:
 
 ### Target universe
 
-**500–1,500 liquid US equities**
+**500-1,500 liquid US equities**
 
 Filter using:
 
@@ -522,7 +522,7 @@ This is one of the most important parts.
 
 Avoid:
 
-> “Our strategy made 200%.”
+> "Our strategy made 200%."
 
 Instead build a realistic backtest.
 
@@ -620,7 +620,7 @@ Position Size           4.2%
 
 Input:
 
-> “Find mispriced beneficiaries of AI infrastructure spending.”
+> "Find mispriced beneficiaries of AI infrastructure spending."
 
 Button:
 
@@ -660,19 +660,19 @@ Risk               Medium
 Show the AI's work live:
 
 ```text
-✓ Parsed investment thesis
-✓ Defined screening criteria
-✓ Scanned 1,247 companies
-✓ Identified 7 candidates
-✓ Retrieved 10-K / 10-Q filings
-✓ Analyzed earnings transcripts
-✓ Extracted catalysts
-✓ Generated bull thesis
-✓ Generated bear thesis
-✓ Ran historical event study
-✓ Backtested signal
-✓ Calculated portfolio risk
-✓ Generated final recommendation
+x Parsed investment thesis
+x Defined screening criteria
+x Scanned 1,247 companies
+x Identified 7 candidates
+x Retrieved 10-K / 10-Q filings
+x Analyzed earnings transcripts
+x Extracted catalysts
+x Generated bull thesis
+x Generated bear thesis
+x Ran historical event study
+x Backtested signal
+x Calculated portfolio risk
+x Generated final recommendation
 ```
 
 This makes the demo feel autonomous.
@@ -685,49 +685,49 @@ Use a thesis with a clear narrative.
 
 ### Example
 
-> **“Find companies benefiting from accelerating AI data-center spending that the market may be underpricing.”**
+> **"Find companies benefiting from accelerating AI data-center spending that the market may be underpricing."**
 
 Then run the entire system live.
 
 ### Demo sequence
 
-**0–10 sec**
+**0-10 sec**
 
 Enter thesis.
 
-**10–25 sec**
+**10-25 sec**
 
 AI decomposes thesis into measurable criteria.
 
-**25–40 sec**
+**25-40 sec**
 
 Universe scan.
 
-**40–55 sec**
+**40-55 sec**
 
 Top candidates appear.
 
-**55–75 sec**
+**55-75 sec**
 
 AI researches the top candidate.
 
-**75–90 sec**
+**75-90 sec**
 
 Bull vs Bear debate.
 
-**90–110 sec**
+**90-110 sec**
 
 Quant validator displays historical evidence.
 
-**110–130 sec**
+**110-130 sec**
 
 Backtest and risk analysis.
 
-**130–150 sec**
+**130-150 sec**
 
 Final trade idea.
 
-The judges should be able to understand the entire system in approximately 2–3 minutes.
+The judges should be able to understand the entire system in approximately 2-3 minutes.
 
 ---
 
@@ -761,7 +761,7 @@ Instead build:
 
 # 19. $40 Budget
 
-## Target budget: **≤ $40**
+## Target budget: **<= $40**
 
 The goal is to keep almost everything free and spend the majority of the budget on LLM/API usage.
 
@@ -772,7 +772,7 @@ The goal is to keep almost everything free and spend the majority of the budget 
 | LLM API | OpenAI | **$20** |
 | Market data | Free APIs / Yahoo Finance | **$0** |
 | SEC filings | SEC EDGAR | **$0** |
-| Embeddings | Local / low-cost API | **$0–3** |
+| Embeddings | Local / low-cost API | **$0-3** |
 | Vector DB | FAISS / Chroma | **$0** |
 | Backend | FastAPI | **$0** |
 | Frontend | Next.js | **$0** |
@@ -782,8 +782,8 @@ The goal is to keep almost everything free and spend the majority of the budget 
 | C++ | GCC / Clang | **$0** |
 | Charts | Plotly / Recharts | **$0** |
 | GitHub | GitHub | **$0** |
-| Buffer | Extra API usage | **$17–20** |
-| **TOTAL** | | **≤ $40** |
+| Buffer | Extra API usage | **$17-20** |
+| **TOTAL** | | **<= $40** |
 
 ### Spending strategy
 
@@ -797,7 +797,7 @@ Only pay for:
 2. Any market-data endpoint that becomes necessary
 3. Extra API usage near the final demo
 
-A realistic target is **$10–25 total**, leaving the rest as emergency budget.
+A realistic target is **$10-25 total**, leaving the rest as emergency budget.
 
 ---
 
@@ -883,7 +883,7 @@ autonomous-alpha/
 
 # 22. MVP vs Stretch Goals
 
-## MVP — Must Have
+## MVP - Must Have
 
 - Natural-language investment thesis
 - Universe scanning
@@ -987,11 +987,11 @@ The quantitative system determines whether the idea actually survives the eviden
 
 # 24. Winning Demo Statement
 
-> **“Most AI finance tools answer questions about stocks. Ours autonomously finds questions worth asking.”**
+> **"Most AI finance tools answer questions about stocks. Ours autonomously finds questions worth asking."**
 
 Then:
 
-> **“Give it an investment thesis, and it scans the market, finds candidates, researches filings and earnings, builds bull and bear cases, quantitatively tests the hypothesis, backtests the signal, measures risk, and produces an auditable trade idea.”**
+> **"Give it an investment thesis, and it scans the market, finds candidates, researches filings and earnings, builds bull and bear cases, quantitatively tests the hypothesis, backtests the signal, measures risk, and produces an auditable trade idea."**
 
 That is the core story.
 
@@ -1035,7 +1035,7 @@ Each team member contributes a genuinely different technical layer.
 |---|---|
 | Frontend | Next.js, React, TypeScript |
 | Backend | Python, FastAPI |
-| AI | OpenAI / Gemini / Claude API |
+| AI | OpenAI / Gemini API |
 | Agent orchestration | LangGraph or custom Python |
 | RAG | FAISS / Chroma |
 | Embeddings | Local / low-cost API |
@@ -1054,10 +1054,10 @@ Each team member contributes a genuinely different technical layer.
 | Backend hosting | Render / Railway |
 | Version control | GitHub |
 | Containerization | Docker |
-| Budget | **≤ $40** |
+| Budget | **<= $40** |
 
 ## The goal
 
 Build something that makes the judge think:
 
-> **“This isn't an AI stock picker. They built an autonomous quant research workflow.”**
+> **"This isn't an AI stock picker. They built an autonomous quant research workflow."**

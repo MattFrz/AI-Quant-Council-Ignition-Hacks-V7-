@@ -14,7 +14,7 @@ from data.schemas.trade_idea import TradeIdea
 
 # NOTE on sequencing: BearAnalyst (C19) reads state.backtest_result, so
 # QuantValidator MUST run before it. BullAnalyst doesn't need quant results,
-# so it can run either before or after QuantValidator — placed before here
+# so it can run either before or after QuantValidator - placed before here
 # so the bull case forms independent of the numbers, matching the spec's
 # "grounded only in retrieved evidence" framing for the bull side.
 
@@ -147,11 +147,11 @@ def run_pipeline(
     """
     This is what Phase 3's shared services/pipeline.py (3.1) calls into for
     the "research + debate" portion of the §1 chain. Confirm this exact
-    signature — (thesis: str, as_of: date) -> TradeIdea — against whoever
+    signature - (thesis: str, as_of: date) -> TradeIdea - against whoever
     writes pipeline.py before Phase 3 integration.
 
     Universe and factor_scores are expected to already be populated on the
-    state by Lane A/B code upstream of this call — see the TODO below for
+    state by Lane A/B code upstream of this call - see the TODO below for
     where that handoff needs to be wired once pipeline.py exists.
     """
     state = ResearchState(thesis=thesis, as_of=as_of, on_event=on_event)

@@ -1,4 +1,4 @@
-"""Market regime detection. Step B14 — optional, done after the lane's core."""
+"""Market regime detection. Step B14 - optional, done after the lane's core."""
 from __future__ import annotations
 
 from enum import Enum
@@ -103,7 +103,7 @@ def ic_by_regime(
 
 
 def regime_at(regimes: pd.Series, as_of) -> Regime:
-    """The regime in force on a date — what the PM agent quotes."""
+    """The regime in force on a date - what the PM agent quotes."""
     ts = pd.Timestamp(as_of)
     pos = int(regimes.index.searchsorted(ts, side="right")) - 1
     if pos < 0:

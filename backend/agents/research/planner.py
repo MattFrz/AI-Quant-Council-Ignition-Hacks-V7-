@@ -9,7 +9,7 @@ from backend.agents.prompts import RESEARCH_PLANNER_PROMPT
 
 # NOTE: this assumes ResearchState has an `emit(step_id, label, status)` helper
 # and an `events` list, as sketched in the C3 guidance. If your actual C3
-# implementation names things differently, adjust the calls below to match —
+# implementation names things differently, adjust the calls below to match -
 # the important part is that every step change gets logged as a ResearchEvent.
 
 

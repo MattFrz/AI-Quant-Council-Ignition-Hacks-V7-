@@ -45,7 +45,7 @@ class ResearchState:
     def emit(self, step_id: str, label: str, status: str, detail: str | None = None) -> None:
         """
         Appends a ResearchEvent to the running timeline. This is what
-        Cecile's D6 live-timeline component streams — every agent should
+        Cecile's D6 live-timeline component streams - every agent should
         call this at the start AND end of any meaningful step, not just
         once at the end, so the UI reads as continuously active rather than
         jumping straight to "done".

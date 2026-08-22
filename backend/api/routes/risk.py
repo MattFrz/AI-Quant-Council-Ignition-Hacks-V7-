@@ -207,7 +207,7 @@ def _clean(value):
 def tail_risk(request: RiskRequest) -> dict:
     """Historical VaR and CVaR for a live book.
 
-    Calls var_historical / cvar_historical directly — the same functions
+    Calls var_historical / cvar_historical directly - the same functions
     quant/api.py wraps for Zain's C20 validator, so the agent's number and the
     UI's number come from one implementation. The facade's compute_var takes a
     BacktestRun; at portfolio level there is no backtest to hand it, and

@@ -10,7 +10,7 @@ venv/
 .env
 .env.local
 
-# Cached data — regenerate with scripts/seed_data.py
+# Cached data - regenerate with scripts/seed_data.py
 data/cache/*
 !data/cache/.gitkeep
 *.parquet
@@ -41,4 +41,3 @@ cpp/third_party/*
 Thumbs.db
 .vscode/
 .idea/
-.claude/

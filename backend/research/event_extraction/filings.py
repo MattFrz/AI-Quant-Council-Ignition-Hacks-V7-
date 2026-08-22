@@ -23,7 +23,7 @@ class ExtractedEvent:
     description: str
     chunk_id: str  # traces back to the source chunk/citation, never drop this
     event_date: str | None = None  # ISO date string if the text names when the event happened;
-    # None if it's not stated. This is DIFFERENT from source_date/filed_date —
+    # None if it's not stated. This is DIFFERENT from source_date/filed_date -
     # e.g. a 10-Q filed March 15 can describe a guidance change that happened
     # in February. Leave None rather than guessing; extractor.py falls back
     # to the filing date when this is absent.
@@ -33,7 +33,7 @@ def extract_events(chunk_text: str, chunk_id: str, llm: LLMClient) -> list[Extra
     """
     One LLM call per chunk. Forces structured JSON output: a list of events,
     each with a type (from a fixed vocabulary) and a plain description.
-    Returns [] if the chunk contains nothing extraction-worthy — that's a
+    Returns [] if the chunk contains nothing extraction-worthy - that's a
     valid, common outcome, not an error.
     """
     messages = [
@@ -46,7 +46,7 @@ def extract_events(chunk_text: str, chunk_id: str, llm: LLMClient) -> list[Extra
                 '{"event_type": one of ' + str(sorted(VALID_EVENT_TYPES)) + ', '
                 '"description": "one sentence, factual, no speculation", '
                 '"event_date": "ISO date if the text explicitly states when this '
-                'happened (e.g. a specific quarter or date), otherwise null — '
+                'happened (e.g. a specific quarter or date), otherwise null - '
                 'do not guess or infer a date that is not stated"}. '
                 "If there is nothing notable, return an empty array []."
             ),
