@@ -42,7 +42,7 @@ def _company_name(ticker: str) -> str:
     return ticker
 
 
-def _extract_catalysts(state, retriever, llm, universe):
+def _extract_catalysts(state, retriever, llm, universe, focus_tickers=None):
     """Retrieved chunks -> Catalyst objects. The section 3 audit trail.
 
     Sits between the researcher and the analysts because both bull and bear
@@ -124,7 +124,15 @@ def _extract_catalysts(state, retriever, llm, universe):
         counts = {}
         for c in catalysts:
             counts[c.ticker] = counts.get(c.ticker, 0) + 1
-        state.primary_ticker = max(counts, key=counts.get)
+
+        # An explicitly requested company wins if we found ANY evidence for it.
+        #
+        # Choosing purely by catalyst count meant "Analyze Apple" returned
+        # Vertiv, because retrieval surfaced more Vertiv chunks. Asking about a
+        # company and being handed a different one is the system ignoring you,
+        # even if the other name is well evidenced.
+        focus = [t for t in (focus_tickers or []) if counts.get(t)]
+        state.primary_ticker = focus[0] if focus else max(counts, key=counts.get)
         state.primary_name = _company_name(state.primary_ticker)
 
     state.emit(
@@ -142,6 +150,7 @@ def run_pipeline(
     form_type_lookup: dict[str, str] | None = None,
     universe: list | None = None,
     factor_scores: dict | None = None,
+    focus_tickers: list | None = None,
     on_event=None,
 ) -> TradeIdea:
     """
@@ -175,7 +184,7 @@ def run_pipeline(
 
     state = planner.run(state)
     state = researcher.run(state)
-    state = _extract_catalysts(state, retriever, llm, universe)
+    state = _extract_catalysts(state, retriever, llm, universe, focus_tickers)
     state = bull.run(state)
     state = validator.run(state)
     state = bear.run(state)

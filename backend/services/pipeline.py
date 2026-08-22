@@ -363,7 +363,16 @@ class Pipeline:
         if not candidates:
             return {}
 
-        universe_tickers = universe.tickers if universe else candidates
+        # Score every name that could END UP being the recommendation, not just
+        # the shortlist. Retrieval can surface a company the alpha model never
+        # ranked, and if that company wins on evidence it has no score to look
+        # up - which showed on screen as "Alpha 0.0/10" for a perfectly good
+        # idea. Including the indexed set costs nothing and closes the gap.
+        universe_tickers = list(universe.tickers) if universe else list(candidates)
+        for extra in self._indexed_tickers():
+            if extra not in universe_tickers:
+                universe_tickers.append(extra)
+
         scores = self._score_universe(universe_tickers)
 
         if scores is None or scores.empty:
@@ -374,7 +383,7 @@ class Pipeline:
 
         pct = scores.rank(pct=True) * 10.0
         out = {}
-        for t in candidates:
+        for t in set(candidates) | self._indexed_tickers():
             value = pct.get(t)
             out[t] = round(float(value), 1) if value is not None and value == value else 5.0
         return out
@@ -483,6 +492,28 @@ class Pipeline:
 
         return excluded
 
+    #: Names people use that do not appear in the company's legal name.
+    #: "analyze google" should find GOOGL, whose registered name is Alphabet.
+    _TICKER_ALIASES = {
+        "google": "GOOGL", "alphabet": "GOOGL",
+        "facebook": "META", "instagram": "META",
+        "nvidia": "NVDA",
+        "amazon": "AMZN", "aws": "AMZN",
+        "microsoft": "MSFT", "azure": "MSFT",
+        "apple": "AAPL",
+        "broadcom": "AVGO",
+        "micron": "MU",
+        "vertiv": "VRT",
+        "arista": "ANET",
+        "supermicro": "SMCI", "super micro": "SMCI",
+        "oracle": "ORCL",
+        "applied materials": "AMAT",
+        "lam research": "LRCX",
+        "kla": "KLAC",
+        "dell": "DELL",
+        "amd": "AMD",
+    }
+
     def _named_tickers(self, thesis: str) -> set:
         """Every company the thesis mentions by ticker or name.
 
@@ -502,6 +533,10 @@ class Pipeline:
 
         text = thesis.lower()
         named = set()
+
+        for alias, ticker in self._TICKER_ALIASES.items():
+            if re.search(rf"\b{re.escape(alias)}\b", text):
+                named.add(ticker)
 
         #: Names whose first word is too generic to match on.
         generic = {"the", "advanced", "american", "first", "general", "united",
@@ -606,6 +641,9 @@ class Pipeline:
                 retriever=retriever,
                 universe=candidates,
                 factor_scores=factor_scores,
+                # A company the thesis named explicitly outranks catalyst
+                # count when picking what the idea is about.
+                focus_tickers=sorted(self.focus_tickers),
                 # Forward agent-level progress to the live stream so the ~40s
                 # research phase shows work instead of one spinning row.
                 on_event=self._forward_agent_event,
