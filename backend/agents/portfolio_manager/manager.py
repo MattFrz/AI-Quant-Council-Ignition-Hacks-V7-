@@ -49,11 +49,16 @@ class PortfolioManager(Agent):
         # is the frozen Phase 1 contract and the frontend reads it verbatim.
         # `side` not `direction`; alpha_score is 0-10 and required.
         raw_alpha = self._top_alpha_score(state, ticker)
-        risk = state.risk_metrics
-        if isinstance(risk, dict):
-            risk = self._risk_from_dict(risk)
 
-        # Sector comes from the cached company profiles, not from the LLM.
+        # The card describes ONE position, so its risk must be that stock's
+        # risk. state.risk_metrics is the strategy portfolio's - correct, but
+        # about a different thing. Overlay the single-name figures where we
+        # have them; portfolio-level fields (concentration, correlation) stay
+        # from the strategy since they have no single-name equivalent.
+        payload = dict(state.risk_metrics) if isinstance(state.risk_metrics, dict) else {}
+        payload.update(self._single_name_risk(ticker, state.as_of))
+
+        risk = self._risk_from_dict(payload)
         if risk is not None and not risk.sector:
             risk.sector = self._sector_for(ticker)
 
@@ -120,6 +125,16 @@ class PortfolioManager(Agent):
         # return rather than reporting nothing.
         annualized = getattr(bt, "annualized_return", None)
         return float(annualized) if annualized is not None else None
+
+    @staticmethod
+    def _single_name_risk(ticker: str, as_of):
+        """Beta, vol, drawdown and VaR for the held name itself."""
+        try:
+            from quant.api import single_name_risk
+
+            return single_name_risk(ticker, as_of=as_of)
+        except Exception:  # noqa: BLE001 - fall back to strategy-level figures
+            return {}
 
     @staticmethod
     def _sector_for(ticker: str):

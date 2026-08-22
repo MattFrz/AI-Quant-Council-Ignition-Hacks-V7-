@@ -263,6 +263,70 @@ def compute_risk_metrics(
     }
 
 
+def single_name_risk(
+    ticker: str,
+    as_of: Optional[DateLike] = None,
+    lookback_years: float = 3.0,
+    position_pct: float = 5.0,
+    portfolio_value: float = 1_000_000.0,
+) -> Dict[str, Any]:
+    """Risk of holding ONE name, for a TradeIdea's risk panel.
+
+    This is deliberately separate from compute_risk_metrics, which describes
+    the strategy portfolio. Putting portfolio-level risk on a single-stock card
+    is actively misleading: it reported beta 0.64 for AMD, whose beta is 1.76,
+    because it was measuring a diversified 7-name book rebalanced monthly.
+    Anyone who knows the stock spots that immediately, and it discredits every
+    other number on the page.
+    """
+    from backend.config import settings
+    from quant.backtest.metrics import beta as _beta
+    from quant.backtest.metrics import drawdown_curve, equity_curve, volatility as _vol
+    from quant.risk.liquidity import days_to_liquidate
+    from quant.risk.metrics import risk_band
+    from quant.risk.var import cvar_historical, var_historical
+
+    out: Dict[str, Any] = {}
+    try:
+        panel = load_wide(tickers=[ticker, settings.benchmark_ticker])
+    except Exception as exc:  # noqa: BLE001
+        log.warning("single_name_risk: no price data for %s (%s)", ticker, exc)
+        return out
+
+    if ticker not in panel.returns.columns:
+        return out
+
+    rets = panel.returns[ticker].dropna()
+    if as_of is not None:
+        rets = rets[rets.index <= pd.Timestamp(as_of)]
+    if lookback_years:
+        cutoff = rets.index.max() - pd.Timedelta(days=int(365.25 * lookback_years))
+        rets = rets[rets.index >= cutoff]
+
+    if len(rets) < 60:
+        return out
+
+    bench = panel.returns.get(settings.benchmark_ticker)
+    vol = _vol(rets)
+
+    out["beta"] = _beta(rets, bench) if bench is not None else None
+    out["volatility"] = vol
+    out["max_drawdown"] = float(drawdown_curve(equity_curve(rets)).min())
+    out["var_95"] = var_historical(rets, 0.95)
+    out["cvar_95"] = cvar_historical(rets, 0.95)
+    out["risk_band"] = risk_band(vol).value
+
+    try:
+        adv = float(panel.adv[ticker].dropna().iloc[-1])
+        out["days_to_liquidate"] = days_to_liquidate(
+            portfolio_value * position_pct / 100.0, adv, settings.max_adv_participation
+        )
+    except Exception:  # noqa: BLE001
+        pass
+
+    return out
+
+
 def compute_var(
     result: Union[BacktestRun, BacktestResult],
     confidence: float = 0.95,
