@@ -95,34 +95,98 @@ class FixedBpsSlippage(SlippageModel):
         return self.bps
 
 
-def get_slippage_model(use_cpp: bool = False, **kwargs) -> SlippageModel:
-    """Factory. Phase 4 wires the C++ simulator in here behind the flag.
+def cpp_available() -> bool:
+    """Is the compiled execution simulator importable?"""
+    try:
+        import aqc_exec  # noqa: F401
+        return True
+    except ImportError:
+        return False
 
-    If the extension is missing or fails to import we log and fall back, because
-    a compiler problem on the demo laptop must never take the demo down.
+
+def get_slippage_model(use_cpp: bool = False, **kwargs) -> SlippageModel:
+    """Factory. Step 4.7.
+
+    The C++ path is opt-in and always degrades. A compiler problem on the demo
+    laptop must cost us a more precise number, never a working demo - so an
+    import failure logs once and returns the pure-Python model.
     """
     if use_cpp:
         try:
-            from cpp.bindings import execution_sim  # type: ignore  # noqa: F401
+            import aqc_exec  # noqa: F401
 
-            log.info("slippage: using C++ execution simulator")
-            return _CppSlippageAdapter(**kwargs)  # pragma: no cover - Phase 4
-        except Exception as exc:  # noqa: BLE001
+            log.info("slippage: using C++ order-book execution simulator")
+            return OrderBookSlippage(**kwargs)
+        except ImportError as exc:
             log.warning(
-                "slippage: C++ simulator unavailable (%s) - falling back to "
-                "participation-rate model", exc,
+                "slippage: aqc_exec not built (%s) - falling back to the "
+                "participation-rate model. Run scripts/build_cpp.sh to enable.",
+                exc,
             )
 
     return ParticipationRateSlippage(**kwargs)
 
 
-class _CppSlippageAdapter(SlippageModel):  # pragma: no cover - Phase 4 placeholder
-    """Thin wrapper over the pybind11 module. Implemented in step 4.7."""
+@dataclass
+class OrderBookSlippage(SlippageModel):
+    """Impact measured by walking a reconstructed book instead of assuming it.
 
-    name = "cpp_orderbook"
+    Needs a book to walk. When one has been supplied for the symbol - via
+    `attach_book()` after an ITCH replay - impact comes from real resting
+    depth. With no book attached it delegates to the participation model
+    rather than guessing, so a partially-populated run stays coherent.
+    """
 
-    def impact_bps(self, notional: float, adv_usd: float, volatility: Optional[float] = None) -> float:
-        raise NotImplementedError("Phase 4: wire cpp/bindings/pybind_module.cpp")
+    coefficient: float = 1.0
+    default_volatility: float = 0.02
+    min_bps: float = 0.5
+    max_bps: float = 300.0
+    name: str = "cpp_orderbook"
+
+    def __post_init__(self) -> None:
+        self._books: dict = {}
+        self._fallback = ParticipationRateSlippage(
+            coefficient=self.coefficient,
+            default_volatility=self.default_volatility,
+            min_bps=self.min_bps,
+            max_bps=self.max_bps,
+        )
+
+    def attach_book(self, ticker: str, book) -> None:
+        """Register a replayed book for a symbol."""
+        self._books[ticker.upper()] = book
+
+    def impact_bps(
+        self,
+        notional: float,
+        adv_usd: float,
+        volatility: Optional[float] = None,
+        ticker: Optional[str] = None,
+    ) -> float:
+        book = self._books.get((ticker or "").upper())
+        if book is None:
+            return self._fallback.impact_bps(notional, adv_usd, volatility)
+
+        import aqc_exec
+
+        quote = book.top()
+        if not quote.valid() or quote.mid() <= 0:
+            return self._fallback.impact_bps(notional, adv_usd, volatility)
+
+        shares = max(1, int(abs(notional) / quote.mid()))
+        side = aqc_exec.Side.BUY if notional >= 0 else aqc_exec.Side.SELL
+
+        result = aqc_exec.ExecutionSimulator().market_order(book, side, shares)
+        if result.filled == 0:
+            return self.max_bps
+
+        bps = abs(result.slippage_bps)
+        # An order that could not be filled from displayed depth would have to
+        # wait or pay up; charging only the walked portion would understate it.
+        if not result.complete:
+            bps = max(bps, self.max_bps * 0.5)
+
+        return float(min(max(bps, self.min_bps), self.max_bps))
 
 
 DEFAULT_SLIPPAGE_MODEL = ParticipationRateSlippage()
