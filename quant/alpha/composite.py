@@ -111,8 +111,7 @@ class CompositeModel:
                 )
             )
 
-        # Derived from the parts, never computed separately — check_sums() is a
-        # gate in scripts/verify_contract.py and it must hold exactly.
+        # Derived from the parts, never computed separately — check_sums() is a.
         composite = float(sum(c.contribution for c in contributions))
 
         if alpha_score is None:

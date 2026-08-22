@@ -103,8 +103,7 @@ def find_similar_setups(
     if w.sum() == 0:
         w = np.ones(len(names))
 
-    # Hard cutoff: match date AND its whole outcome window must precede the
-    # decision date. This is the line that keeps the study honest.
+    # Hard cutoff: match date AND its whole outcome window must precede the.
     gap = min_gap_days if min_gap_days is not None else int(np.ceil(post * 7 / 5))
     cutoff = target_ts - pd.Timedelta(days=gap)
 

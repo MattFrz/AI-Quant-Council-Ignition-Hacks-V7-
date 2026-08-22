@@ -157,8 +157,6 @@ class Panel:
         adv = grab("adv")
 
         # Align to the intersection rather than trusting the upstream promise.
-        # A single ticker present in one frame and absent from another produces
-        # NaN columns that quietly poison the cross-section.
         common = adj_close.columns.intersection(volume.columns)
         dates = adj_close.index.intersection(volume.index)
         for extra in (raw_close, adv):

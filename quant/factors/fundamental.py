@@ -41,8 +41,7 @@ def latest_and_prior(
         empty = pd.DataFrame(index=pd.Index([], name="ticker"))
         return empty, empty
 
-    # de-duplicate restatements: keep the FIRST filing of each period, which is
-    # the number the market actually traded on
+    # de-duplicate restatements: keep the FIRST filing of each period, which is.
     first_filed = (
         funds.sort_values("report_date")
         .groupby(["ticker", "period_end"], as_index=False)

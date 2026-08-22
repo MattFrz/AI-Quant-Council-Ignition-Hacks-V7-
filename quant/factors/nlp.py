@@ -67,8 +67,7 @@ class CatalystSentiment(Factor):
             return pd.Series(np.nan, index=window.tickers, dtype=float)
 
         out = pd.Series(scores, dtype=float).reindex(window.tickers)
-        # Names with no catalysts stay NaN rather than becoming 0.0: no evidence
-        # is not the same finding as balanced evidence.
+        # Names with no catalysts stay NaN rather than becoming 0.0: no evidence.
         return out
 
     def with_catalysts(self, catalysts: Sequence[Catalyst]) -> "CatalystSentiment":

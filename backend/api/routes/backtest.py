@@ -162,9 +162,7 @@ def run_backtest(request: BacktestRequest) -> BacktestResult:
         max_names=request.max_names,
         strategy_name=request.strategy_name,
     )
-    # Pass the real split. Without it the engine defaults to a degenerate window
-    # where train_end == test_start, and BacktestWindow.is_clean() is false —
-    # which is exactly the "did you overfit?" question, answered wrong.
+    # Pass the real split. Without it the engine defaults to a degenerate window.
     window = None
     if len(train) and len(test):
         window = BacktestWindow(
@@ -172,8 +170,7 @@ def run_backtest(request: BacktestRequest) -> BacktestResult:
             test_start=test[0].date(), test_end=test[-1].date(),
         )
 
-    # Through quant/api.py, the shared entry point, so this route and Zain's
-    # C20 validator provably run the same code path.
+    # Through quant/api.py, the shared entry point, so this route and Zain's.
     end_stamp = close.index[-1]
     span_years = max((end_stamp - close.index[0]).days / 365.25, 0.1)
     try:

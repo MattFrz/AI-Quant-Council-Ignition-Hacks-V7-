@@ -145,10 +145,7 @@ def fit_ridge_weights(
     train = pd.DatetimeIndex(train_dates)
     fwd = forward_returns(panel, horizon=horizon)
 
-    # Ridge needs complete rows, and a factor that is entirely absent on the
-    # train window (the B8 stub, before C15 lands) would drop EVERY row via the
-    # dropna in _stack. Exclude those up front and give them zero weight — the
-    # alternative is a fit that cannot run at all while any factor is stubbed.
+    # Ridge needs complete rows, and a factor that is entirely absent on the.
     usable = {
         name: scores for name, scores in panels.items()
         if scores.reindex(index=train).notna().any().any()
