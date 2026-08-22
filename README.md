@@ -1,4 +1,4 @@
-# Autonomous Alpha
+# AI Quant Council (Ignition Hacks V7)
 
 Give the system an investment thesis, and it autonomously discovers, researches,
 tests, challenges and ranks trades.
