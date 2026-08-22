@@ -6,7 +6,7 @@ export default function Home() {
       <h1>Autonomous Alpha</h1>
       <p>Frontend scaffold is running. Phase 0 gate passed.</p>
       <p>
-        Next: step D1 in the build plan — point <code>lib/api.ts</code> at{" "}
+        Next: step D1 in the build plan - point <code>lib/api.ts</code> at{" "}
         <code>data/fixtures/sample_trade_idea.json</code> and start building
         against the contract.
       </p>

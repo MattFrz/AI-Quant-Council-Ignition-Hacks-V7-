@@ -32,7 +32,7 @@ class BacktestResult(BaseModel):
     universe_size: int
     window: BacktestWindow
 
-    # Curves — all three share an x-axis so the chart can overlay them directly.
+    # Curves - all three share an x-axis so the chart can overlay them directly.
     equity_curve: List[CurvePoint] = Field(default_factory=list)
     drawdown_curve: List[CurvePoint] = Field(default_factory=list)
     benchmark_curve: List[CurvePoint] = Field(default_factory=list)
@@ -54,7 +54,7 @@ class BacktestResult(BaseModel):
     win_rate: Optional[float] = Field(None, ge=0.0, le=1.0)
     n_trades: Optional[int] = None
 
-    # Assumptions — state them so the number can be argued with honestly.
+    # Assumptions - state them so the number can be argued with honestly.
     commission_bps: float = 1.0
     slippage_model: str = "participation_rate"
     max_adv_participation: float = 0.05
