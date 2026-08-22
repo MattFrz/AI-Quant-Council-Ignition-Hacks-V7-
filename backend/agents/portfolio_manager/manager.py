@@ -53,6 +53,10 @@ class PortfolioManager(Agent):
         if isinstance(risk, dict):
             risk = self._risk_from_dict(risk)
 
+        # Sector comes from the cached company profiles, not from the LLM.
+        if risk is not None and not risk.sector:
+            risk.sector = self._sector_for(ticker)
+
         trade_idea = TradeIdea(
             idea_id=f"{ticker}-{state.as_of.isoformat()}",
             ticker=ticker,
@@ -61,7 +65,7 @@ class PortfolioManager(Agent):
             as_of=state.as_of,
             alpha_score=self._clamp_alpha(raw_alpha),
             confidence=self._confidence_from_agreement(state),
-            expected_alpha=self._top_expected_alpha(state, ticker),
+            expected_alpha=self._expected_alpha(state, ticker),
             catalysts=state.catalysts,
             backtest=state.backtest_result,
             risk=risk,
@@ -89,6 +93,47 @@ class PortfolioManager(Agent):
             return float(min(max(float(value), 0.0), 10.0))
         except (TypeError, ValueError):
             return 0.0
+
+    def _expected_alpha(self, state: ResearchState, ticker: str):
+        """Annualized excess return over the benchmark, from the backtest.
+
+        Explicitly a BACKTESTED figure, not a forecast. We have no
+        forward-return model, and inventing one would be exactly the kind of
+        made-up number the quant validator exists to prevent. If the lane
+        upstream supplied a real expected_alpha it wins; otherwise this is the
+        historical excess return the strategy actually produced, which is
+        defensible as long as it is described as such.
+        """
+        supplied = self._score_entry(state, ticker).get("expected_alpha")
+        if supplied is not None:
+            return supplied
+
+        bt = state.backtest_result
+        if bt is None:
+            return None
+
+        excess = getattr(bt, "excess_return", None)
+        if excess is not None:
+            return float(excess)
+
+        # No benchmark on the run - fall back to the absolute annualized
+        # return rather than reporting nothing.
+        annualized = getattr(bt, "annualized_return", None)
+        return float(annualized) if annualized is not None else None
+
+    @staticmethod
+    def _sector_for(ticker: str):
+        """GICS-style sector from the cached profiles."""
+        try:
+            from data.pipelines.prices import load_profiles
+
+            profiles = load_profiles()
+            match = profiles.loc[profiles["ticker"] == ticker, "sector"]
+            if len(match) and match.iloc[0]:
+                return str(match.iloc[0])
+        except Exception:  # noqa: BLE001 - a missing cache must not block the idea
+            pass
+        return None
 
     @staticmethod
     def _company_name(ticker: str) -> str:
@@ -131,9 +176,44 @@ class PortfolioManager(Agent):
         return Verdict.SURVIVED if sharpe > 0 else Verdict.REJECTED
 
     def _infer_primary_ticker(self, state: ResearchState) -> str:
-        if state.catalysts:
-            return state.catalysts[0].ticker
-        raise ValueError("Cannot determine primary ticker — no catalysts on state")
+        """The idea must be about a RANKED candidate that we found evidence for.
+
+        Taking catalysts[0].ticker alone picks whatever the retriever surfaced
+        first, which can be a company the alpha model never shortlisted - so
+        the system would claim to have ranked 483 names and then recommend one
+        that was not among the top 7. It also breaks the score lookup, since
+        factor_scores is keyed by candidate.
+
+        Preference order:
+          1. highest-scoring candidate that has catalysts
+          2. any candidate with catalysts
+          3. whatever the evidence is mostly about (research went elsewhere,
+             so report that honestly rather than forcing a candidate we have
+             no evidence for)
+        """
+        if not state.catalysts:
+            raise ValueError("Cannot determine primary ticker - no catalysts on state")
+
+        with_evidence = {c.ticker for c in state.catalysts}
+        scores = state.factor_scores or {}
+
+        ranked = [t for t in scores if t in with_evidence]
+        if ranked:
+            def score_of(t):
+                entry = scores.get(t)
+                if isinstance(entry, dict):
+                    return entry.get("alpha_score") or 0.0
+                try:
+                    return float(entry)
+                except (TypeError, ValueError):
+                    return 0.0
+
+            return max(ranked, key=score_of)
+
+        counts = {}
+        for c in state.catalysts:
+            counts[c.ticker] = counts.get(c.ticker, 0) + 1
+        return max(counts, key=counts.get)
 
     def _infer_direction(self, state: ResearchState) -> str:
         # naive default; replace with real logic once factor_scores/backtest

@@ -221,6 +221,37 @@ class Pipeline:
         self.emit("identify_candidates", "done", f"{len(candidates)} candidates")
         return candidates
 
+    def _display_scores(self, universe, candidates: List[str]) -> Dict[str, float]:
+        """Composite alpha mapped to the 0-10 display scale the schema wants.
+
+        The raw composite is a cross-sectional z-score: roughly -3 to +3, and
+        negative for half the universe by construction. Passing it straight
+        through meant every clamp-to-[0,10] turned a perfectly good candidate
+        into "0.0/10" on screen.
+
+        Percentile rank against the WHOLE scored universe is the honest
+        mapping: 8.7 means "ranked in the top 13% of 483 names", which is a
+        statement you can defend, unlike a bare z-score nobody can interpret.
+        """
+        if not candidates:
+            return {}
+
+        universe_tickers = universe.tickers if universe else candidates
+        scores = self._score_universe(universe_tickers)
+
+        if scores is None or scores.empty:
+            # No alpha model. Say so with a neutral 5.0 rather than implying
+            # either a strong or a failing score.
+            self._degrade("alpha_display", "no scores available - neutral 5.0 used")
+            return {t: 5.0 for t in candidates}
+
+        pct = scores.rank(pct=True) * 10.0
+        out = {}
+        for t in candidates:
+            value = pct.get(t)
+            out[t] = round(float(value), 1) if value is not None and value == value else 5.0
+        return out
+
     def _research_funnel(self, universe, candidates, idea) -> List[dict]:
         """The thesis-driven stages, appended after the universe filters.
 
@@ -320,12 +351,7 @@ class Pipeline:
             # QuantValidator needs the universe and its scores on state - it
             # calls into quant/ and refuses to run without them rather than
             # inventing numbers. Hand over the candidates we just ranked.
-            scores = self._score_universe(candidates)
-            factor_scores = (
-                {t: float(v) for t, v in scores.items()}
-                if scores is not None and not scores.empty
-                else {t: 1.0 for t in candidates}
-            )
+            factor_scores = self._display_scores(universe, candidates)
 
             idea = run_agents(
                 thesis=thesis,
