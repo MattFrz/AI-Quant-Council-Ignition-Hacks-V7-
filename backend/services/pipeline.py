@@ -74,6 +74,7 @@ class Pipeline:
         self.events: List[ResearchEvent] = []
         self.event_study = None
         self.excluded_tickers: set = set()
+        self.focus_tickers: set = set()
         self.degraded: List[str] = []
 
     # ---------------------------------------------------------------- events
@@ -307,6 +308,25 @@ class Pipeline:
                      sorted(excluded), before, len(ranked))
             self.excluded_tickers = excluded
 
+        # A company named positively in the thesis leads the shortlist.
+        #
+        # "Analyse NVIDIA's position in the AI buildout" should research NVDA.
+        # It still has to clear the universe filters and have indexed filings -
+        # we will not research a company we cannot cite - but among names that
+        # qualify, an explicit request wins over the momentum ranking.
+        focus = {t for t in self._named_tickers(thesis) if t not in excluded}
+        if focus:
+            in_universe = [t for t in ranked if t in focus]
+            if in_universe:
+                ranked = in_universe + [t for t in ranked if t not in focus]
+                self.focus_tickers = set(in_universe)
+                log.info("thesis names %s - leading the shortlist", sorted(in_universe))
+            else:
+                self._degrade(
+                    "identify_candidates",
+                    f"thesis names {sorted(focus)} but none passed the universe filters",
+                )
+
         citable = self._indexed_tickers()
         if citable:
             preferred = [t for t in ranked if t in citable]
@@ -462,6 +482,63 @@ class Pipeline:
                     break
 
         return excluded
+
+    def _named_tickers(self, thesis: str) -> set:
+        """Every company the thesis mentions by ticker or name.
+
+        Used for the positive case: "Analyse NVIDIA's position in the AI
+        buildout" should research NVDA, not whatever the momentum model
+        happened to rank first. Without this the only way to steer the system
+        was to exclude every other name, which is not a usable interface.
+        """
+        import re
+
+        if not thesis:
+            return set()
+        try:
+            profiles = load_profiles()
+        except Exception:  # noqa: BLE001
+            return set()
+
+        text = thesis.lower()
+        named = set()
+
+        #: Names whose first word is too generic to match on.
+        generic = {"the", "advanced", "american", "first", "general", "united",
+                   "international", "national", "global", "corp", "inc"}
+
+        #: Common-word tickers that would match ordinary prose.
+        ambiguous = {"IT", "ON", "ALL", "NOW", "GO", "SO", "A", "K", "T", "F"}
+
+        for _, row in profiles.iterrows():
+            ticker = str(row.get("ticker") or "").strip()
+            name = str(row.get("name") or "").strip()
+            if not ticker:
+                continue
+
+            if ticker not in ambiguous and re.search(
+                rf"\b{re.escape(ticker.lower())}\b", text
+            ):
+                named.add(ticker)
+                continue
+
+            words = name.split(",")[0].split() if name else []
+            head = words[0].lower() if words else ""
+
+            if len(head) > 3 and head not in generic and re.search(
+                rf"\b{re.escape(head)}\b", text
+            ):
+                named.add(ticker)
+                continue
+
+            # A generic first word ("Advanced Micro Devices") needs two words
+            # to be distinctive - "advanced" alone matches nothing useful.
+            if head in generic and len(words) > 1:
+                pair = " ".join(words[:2]).lower()
+                if re.search(rf"\b{re.escape(pair)}\b", text):
+                    named.add(ticker)
+
+        return named
 
     def _indexed_tickers(self) -> set:
         """Tickers with filings in the RAG index, or an empty set if none."""
