@@ -34,7 +34,17 @@ from data.schemas.trade_idea import TradeIdea
 
 log = get_logger(__name__)
 
-CACHE_VERSION = 1
+#: Bump whenever the SHAPE of a stored run changes - new timeline steps, new
+#: TradeIdea fields, changed event semantics. Entries written under an older
+#: version are ignored rather than replayed.
+#:
+#: This is not bookkeeping. A cached run stores its own event list, so after
+#: the timeline went from 11 steps to 13, every previously cached thesis kept
+#: replaying 11 forever while a fresh thesis returned 13 - which looked exactly
+#: like a bug that only affected "some prompts".
+#:
+#: 2: 13-step timeline, per-stock risk, populated position size and verdict bar
+CACHE_VERSION = 2
 CACHE_SUBDIR = "pipeline"
 
 
