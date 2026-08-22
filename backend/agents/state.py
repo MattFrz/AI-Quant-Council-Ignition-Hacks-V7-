@@ -5,6 +5,14 @@ from datetime import date, datetime
 from backend.services.events import ResearchEvent  # schema 1.10
 
 
+#: Agent-facing status words -> the StepStatus values frozen in schema 1.10.
+_STATUS_ALIASES = {
+    "in_progress": "running",
+    "error": "failed",
+    "complete": "done",
+}
+
+
 @dataclass
 class ResearchState:
     thesis: str
@@ -34,11 +42,17 @@ class ResearchState:
         jumping straight to "done".
 
         status convention: "in_progress" | "done" | "error"
+
+        Those strings are normalised onto the StepStatus enum frozen in
+        Phase 1 (pending/running/done/failed). Without this mapping every
+        emit() raises a pydantic ValidationError, because "in_progress" and
+        "error" are not members. Mapping here keeps all six agent call sites
+        and Cecile's TypeScript mirror unchanged.
         """
         self.events.append(ResearchEvent(
             step_id=step_id,
             label=label,
-            status=status,
+            status=_STATUS_ALIASES.get(status, status),
             detail=detail,
             timestamp=datetime.utcnow(),
         ))
