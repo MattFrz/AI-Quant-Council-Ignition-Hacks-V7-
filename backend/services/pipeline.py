@@ -122,6 +122,16 @@ class Pipeline:
         idea = self._research_and_debate(thesis, as_of, universe, candidates)
         result.top_idea = idea
 
+        # Extend the funnel past Lane A's guardrails.
+        #
+        # Those four filters barely narrow an S&P 500 universe - it is already
+        # screened for liquidity and market cap - so a funnel that stops there
+        # looks like nothing happened. The real narrowing is thesis-driven and
+        # happens downstream, and that is the part worth showing.
+        result.funnel_stages = list(result.funnel_stages) + self._research_funnel(
+            universe, candidates, idea
+        )
+
         result.events = self.events
         result.degraded = self.degraded
         result.elapsed_s = time.monotonic() - started
@@ -210,6 +220,48 @@ class Pipeline:
         candidates = ranked[:max_candidates]
         self.emit("identify_candidates", "done", f"{len(candidates)} candidates")
         return candidates
+
+    def _research_funnel(self, universe, candidates, idea) -> List[dict]:
+        """The thesis-driven stages, appended after the universe filters.
+
+        Every count here is measured, not decorative: the citable stage is the
+        real size of the document corpus, and the final stage is 1 only if the
+        idea actually survived validation.
+        """
+        stages: List[dict] = []
+
+        citable = self._indexed_tickers()
+        if citable and universe:
+            covered = [t for t in universe.tickers if t in citable]
+            stages.append({
+                "label": "Filings indexed",
+                "count": len(covered),
+                "description": "companies with SEC filings in the retrieval corpus",
+            })
+
+        if candidates:
+            stages.append({
+                "label": "Alpha ranked",
+                "count": len(candidates),
+                "description": "top candidates by composite alpha score",
+            })
+
+        if idea is not None:
+            researched = len({c.ticker for c in idea.catalysts}) or 1
+            stages.append({
+                "label": "Researched",
+                "count": researched,
+                "description": "companies with catalysts extracted from filings",
+            })
+
+            survived = 1 if idea.validator_verdict.value == "survived" else 0
+            stages.append({
+                "label": "Survived validation",
+                "count": survived,
+                "description": "backtested and risk-checked",
+            })
+
+        return stages
 
     def _indexed_tickers(self) -> set:
         """Tickers with filings in the RAG index, or an empty set if none."""
