@@ -66,5 +66,5 @@ def fixture() -> dict:
 
 @app.on_event("startup")
 def _startup() -> None:
-    log.info("Autonomous Alpha backend up — model=%s offline=%s",
+    log.info("Autonomous Alpha backend up - model=%s offline=%s",
              settings.llm_model, settings.offline_mode)

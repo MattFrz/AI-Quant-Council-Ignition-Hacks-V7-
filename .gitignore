@@ -21,6 +21,7 @@ data/cache/*
 node_modules/
 .next/
 out/
+*.tsbuildinfo
 frontend/.env.local
 
 # C++ build artifacts
