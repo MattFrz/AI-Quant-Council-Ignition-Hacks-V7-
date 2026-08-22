@@ -1,4 +1,5 @@
 from __future__ import annotations
+import re
 from datetime import date
 
 from data.schemas.catalyst import Catalyst, SourceType, Direction  # adjust import if your schema module differs
@@ -8,6 +9,43 @@ from backend.rag.retrieval.citations import Citation
 # SEC form types that map to SourceType.SEC_FILING. Extend this if you add
 # forms beyond 10-K/10-Q/8-K in C7's pull_filings_for_tickers.
 _SEC_FORM_TYPES = {"10-K", "10-Q", "8-K", "S-1", "DEF 14A"}
+
+
+def _parse_event_date(raw, fallback: date) -> date:
+    """Parse a model-supplied event date, tolerantly.
+
+    `event_date` comes out of an LLM, so it is untrusted input: we have seen
+    "2025-08" (no day), and full prose is equally possible. A strict
+    fromisoformat() raises and kills the whole run - which showed up as the
+    pipeline randomly producing zero catalysts depending on which chunks were
+    retrieved.
+
+    Anything unparseable falls back to the filing date, which is always real.
+    That is the conservative direction: event_date is cosmetic, while
+    source_date drives the as-of leakage check and is never touched here.
+    """
+    if not raw:
+        return fallback
+
+    text = str(raw).strip()
+    try:
+        return date.fromisoformat(text)
+    except ValueError:
+        pass
+
+    # "2025-08" -> first of that month.
+    m = re.fullmatch(r"(\d{4})-(\d{1,2})", text)
+    if m:
+        try:
+            return date(int(m.group(1)), int(m.group(2)), 1)
+        except ValueError:
+            return fallback
+
+    # "2025" -> start of that year.
+    if re.fullmatch(r"\d{4}", text):
+        return date(int(text), 1, 1)
+
+    return fallback
 
 
 def _source_type_for(citation: Citation) -> SourceType:
@@ -74,9 +112,7 @@ def events_to_catalysts(
         # THIS is the field is_known_at() checks for the as-of leakage rule,
         # so it must be citation.filed_date, never left empty. Falls back to
         # source_date when the model couldn't find an explicit event date.
-        event_date = (
-            date.fromisoformat(event.event_date) if event.event_date else citation.filed_date
-        )
+        event_date = _parse_event_date(event.event_date, citation.filed_date)
 
         # index suffix guards against two events extracted from the same
         # chunk colliding on catalyst_id

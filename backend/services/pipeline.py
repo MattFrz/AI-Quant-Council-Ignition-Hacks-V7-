@@ -283,7 +283,17 @@ class Pipeline:
                 universe=candidates,
                 factor_scores=factor_scores,
             )
-            self.emit("extract_catalysts", "done")
+
+            # Close retrieve_filings. Emitting `running` without a matching
+            # terminal event leaves that row spinning forever in the UI, which
+            # reads as a hung system even though the run completed.
+            n_cat = len(idea.catalysts) if idea else 0
+            sources = len({c.source_url for c in idea.catalysts}) if idea else 0
+            self.emit(
+                "retrieve_filings", "done",
+                f"{sources} filings cited" if sources else "no filings retrieved",
+            )
+            self.emit("extract_catalysts", "done", f"{n_cat} catalysts extracted")
 
             # Transcripts were never ingested (Lane C stopped at filings), so
             # this step is reported as skipped rather than silently omitted -
