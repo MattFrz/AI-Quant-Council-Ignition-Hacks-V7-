@@ -101,8 +101,14 @@ def _extract_catalysts(state, retriever, llm, universe, focus_tickers=None):
     # are indexed. The pick then silently becomes whichever company DID get
     # retrieved: "Analyze AMAT" came back as ANET this way. A targeted query
     # puts the requested company's own filings back in the running.
-    missing = [t for t in sorted(focus_set) if not any(c.ticker == t for c in ordered)]
-    for tkr in missing:
+    # Top up on THIN coverage, not just zero coverage. One retrieved chunk is
+    # enough to skip a "did we get anything?" check and still yield no events,
+    # which is how "Analyze ORCL" came back about Vertiv off a single chunk.
+    thin = [
+        t for t in sorted(focus_set)
+        if sum(1 for c in ordered if c.ticker == t) < _FOCUS_CHUNK_BUDGET
+    ]
+    for tkr in thin:
         query = f"{_company_name(tkr)} ({tkr}) {state.thesis}"
         try:
             extra = retriever.retrieve(query, state.as_of, k=_TARGETED_K)
