@@ -1138,3 +1138,63 @@
   font-size: var(--text-xs);
   color: var(--text-muted);
 }
+
+/* Controls: uniform two-row shape so every label sits on the same line.
+   `align-items: start` rather than `end`, because bottom-aligning controls of
+   different heights is what pushed the Side label below the others. */
+.controls {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.control {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+}
+
+.control-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 18px;
+}
+
+.control-value {
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.chips {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Match the slider's height so the toggle row lines up with the sliders. */
+.chips .example-chip {
+  padding: var(--space-2) var(--space-4);
+}
+
+/* Give the slider the same row height as the chip toggle. A 16px input beside
+   a 34px button row leaves the two controls visibly off-centre from each
+   other even when their labels line up. */
+.controls input[type="range"] {
+  height: 34px;
+  margin: 0;
+}
+
+/* `.card + .card` stacks cards down a column, but inside a grid the siblings
+   are side by side, so that margin pushes the second one down and the two tops
+   stop lining up. Reset it for direct grid children only. */
+.exec-grid > .card + .card,
+.results-grid > * > .card:first-child {
+  margin-top: 0;
+}

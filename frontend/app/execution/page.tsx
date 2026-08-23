@@ -67,9 +67,16 @@ export default function ExecutionPage() {
             <span className="count">{data?.engine ?? ""}</span>
           </div>
 
+          {/* Every control is two rows: a header carrying the name and the
+              current value, then the control itself. Uniform shape is what
+              keeps the labels on one line - a three-row slider beside a
+              two-row toggle pushes one label below the others. */}
           <div className="controls">
-            <label>
-              <span className="metric-label">Shares</span>
+            <label className="control">
+              <span className="control-head">
+                <span className="metric-label">Shares</span>
+                <span className="control-value mono">{int(shares)}</span>
+              </span>
               <input
                 type="range"
                 min={100}
@@ -81,11 +88,13 @@ export default function ExecutionPage() {
                 onTouchEnd={run}
                 onKeyUp={run}
               />
-              <span className="metric-value">{int(shares)}</span>
             </label>
 
-            <label>
-              <span className="metric-label">Slices</span>
+            <label className="control">
+              <span className="control-head">
+                <span className="metric-label">Slices</span>
+                <span className="control-value mono">{slices}</span>
+              </span>
               <input
                 type="range"
                 min={1}
@@ -96,12 +105,14 @@ export default function ExecutionPage() {
                 onTouchEnd={run}
                 onKeyUp={run}
               />
-              <span className="metric-value">{slices}</span>
             </label>
 
-            <div className="side-toggle">
-              <span className="metric-label">Side</span>
-              <div>
+            <div className="control">
+              <span className="control-head">
+                <span className="metric-label">Side</span>
+                <span className="control-value mono">{side}</span>
+              </span>
+              <div className="chips">
                 {(["BUY", "SELL"] as const).map((s) => (
                   <button
                     key={s}
