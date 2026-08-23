@@ -582,6 +582,18 @@ class Pipeline:
 
             from backend.rag.index.build_index import CHUNK_LOOKUP_PATH
 
+            # SQLite first: a large index has no JSON lookup, and reading the
+            # distinct tickers is a query rather than a full parse.
+            sqlite_path = CHUNK_LOOKUP_PATH.parent / "chunks.sqlite"
+            if sqlite_path.exists():
+                from backend.rag.index.chunk_store import ChunkStore
+
+                store = ChunkStore(sqlite_path)
+                try:
+                    return set(store.tickers())
+                finally:
+                    store.close()
+
             lookup = json.loads(CHUNK_LOOKUP_PATH.read_text(encoding="utf-8"))
             return {v.get("ticker") for v in lookup.values() if v.get("ticker")}
         except Exception as exc:  # noqa: BLE001

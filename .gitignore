@@ -45,3 +45,8 @@ Thumbs.db
 # Deployment bundle from scripts/package_data.py. Ships as a GitHub release
 # asset, never in the repo - it is far past the 100MB file limit.
 dist/
+
+# Local full-universe index: SQLite chunk store and its build state.
+# Multi-GB, rebuilt by scripts/build_full_index.py, never committed.
+data/cache/index/chunks.sqlite*
+data/cache/index/build_state.json

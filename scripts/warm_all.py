@@ -41,6 +41,16 @@ def indexed_tickers() -> list:
     """Companies with filings in the retrieval index."""
     from backend.rag.index.build_index import CHUNK_LOOKUP_PATH
 
+    sqlite_path = CHUNK_LOOKUP_PATH.parent / "chunks.sqlite"
+    if sqlite_path.exists():
+        from backend.rag.index.chunk_store import ChunkStore
+
+        store = ChunkStore(sqlite_path)
+        try:
+            return store.tickers()
+        finally:
+            store.close()
+
     if not CHUNK_LOOKUP_PATH.exists():
         return []
     lookup = json.loads(CHUNK_LOOKUP_PATH.read_text(encoding="utf-8"))
