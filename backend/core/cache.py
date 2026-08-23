@@ -65,7 +65,7 @@ def cache_key(
     payload = "|".join([
         str(CACHE_VERSION),
         normalized,
-        str(as_of or date.today()),
+        str(settings.resolve_as_of(as_of)),
         str(max_candidates),
         str(universe_size or ""),
     ])

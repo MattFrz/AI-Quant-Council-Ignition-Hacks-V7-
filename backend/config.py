@@ -52,6 +52,23 @@ class Settings(BaseSettings):
     # ---- Runtime -----------------------------------------------------------
     log_level: str = "INFO"
     offline_mode: bool = False
+
+    #: Freeze "today" for a deployment running on a fixed data snapshot.
+    #:
+    #: The cache is keyed partly on as_of, which defaults to the current date -
+    #: so on a permanently hosted instance every warmed entry goes cold at
+    #: midnight and the next visitor pays a full live run. Pinning this to the
+    #: last date in the price panel keeps the cache valid indefinitely AND
+    #: keeps results reproducible, which is the honest behaviour for a system
+    #: whose data stops on a known day. Leave unset for local development.
+    pinned_as_of: Optional[date] = None
+
+    #: Serve only theses that are already warmed.
+    #:
+    #: A public URL with a live LLM key behind it bills the owner for every
+    #: visitor who types something new. With this on, an uncached thesis is
+    #: refused with a message rather than quietly costing money.
+    public_demo_mode: bool = False
     frontend_origin: str = "http://localhost:3000"
     # Comma-separated extra origins allowed to call this API - e.g. the live
     # Base44 app URL. Kept separate from frontend_origin so nothing that
@@ -80,6 +97,15 @@ class Settings(BaseSettings):
         p = PROJECT_ROOT / self.fixtures_dir
         p.mkdir(parents=True, exist_ok=True)
         return p
+
+    def resolve_as_of(self, as_of: Optional[date] = None) -> date:
+        """The date a run should treat as "now".
+
+        One place, so the cache key and the run itself can never disagree
+        about it - a key computed from today against a result computed from a
+        pinned date would store an entry nothing ever reads back.
+        """
+        return as_of or self.pinned_as_of or date.today()
 
     def require_llm_key(self) -> str:
         if not self.llm_api_key or self.llm_api_key.startswith("sk-replace"):

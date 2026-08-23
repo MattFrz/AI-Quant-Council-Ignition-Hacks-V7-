@@ -9,6 +9,7 @@ from backend.api.schemas import (
     ScanResponse,
     ThesisRequest,
 )
+from backend.config import settings
 from backend.services.job_runner import get_job, start_job
 
 router = APIRouter(prefix="/research", tags=["research"])
@@ -21,6 +22,31 @@ def start_research(request: ThesisRequest):
     it either replays a cached result instantly or spins up a background
     thread and returns right away (see job_runner.py's own docstring).
     """
+    # A public instance answers from the warm cache only.
+    #
+    # Every uncached thesis is a real LLM run charged to whoever owns the key,
+    # so an open URL without this is a bill that grows with traffic. Refusing
+    # with a list of what IS available is friendlier than a rate limit and
+    # keeps the demo instant.
+    if settings.public_demo_mode:
+        from backend.core import cache
+
+        hit = cache.get(
+            request.thesis,
+            request.as_of,
+            request.max_candidates,
+            request.universe_size,
+        )
+        if hit is None:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "This deployment answers pre-computed theses only. Pick one of "
+                    "the suggested theses, or run the project locally to research "
+                    "anything you like."
+                ),
+            )
+
     job = start_job(
         thesis=request.thesis,
         as_of=request.as_of,

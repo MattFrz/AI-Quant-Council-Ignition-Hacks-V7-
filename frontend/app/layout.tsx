@@ -1,10 +1,11 @@
-// Placeholder root layout so `npm run dev` runs. Cecile replaces this in step D3.
 import type { Metadata } from "next";
 import "./globals.css";
+import "./components.css";
 
 export const metadata: Metadata = {
-  title: "Autonomous Alpha",
-  description: "Autonomous quant research platform",
+  title: "AI Quant Council",
+  description:
+    "Turn an investment thesis into evidence, debate, quantitative validation, and an auditable decision.",
 };
 
 export default function RootLayout({
@@ -14,6 +15,26 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        {/*
+          Loaded by link rather than next/font on purpose: next/font resolves at
+          BUILD time, so a build without network access fails outright. The
+          token file already declares fallback stacks, so a blocked request
+          degrades to system fonts instead of breaking the page.
+        */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        />
+        <style>{`
+          :root {
+            --font-inter: "Inter";
+            --font-mono-jb: "JetBrains Mono";
+          }
+        `}</style>
+      </head>
       <body>{children}</body>
     </html>
   );

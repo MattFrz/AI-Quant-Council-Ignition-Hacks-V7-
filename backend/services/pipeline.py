@@ -185,7 +185,7 @@ class Pipeline:
         universe_size: Optional[int] = None,
     ) -> PipelineResult:
         started = time.monotonic()
-        as_of = as_of or date.today()
+        as_of = settings.resolve_as_of(as_of)
 
         result = PipelineResult(thesis=thesis, as_of=as_of)
 

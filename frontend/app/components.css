@@ -1,0 +1,577 @@
+/* frontend/app/components.css
+ *
+ * Component classes. Every value here reads a token from globals.css - if you
+ * find yourself typing a hex code or a pixel spacing, add it there instead.
+ */
+
+/* ------------------------------------------------------------------ shell */
+
+.page {
+  min-height: 100vh;
+  padding: var(--space-7) 0 var(--space-8);
+}
+
+.masthead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--positive);
+  box-shadow: 0 0 0 3px var(--positive-soft);
+}
+
+.live-dot[data-state="idle"] {
+  background: var(--neutral);
+  box-shadow: 0 0 0 3px var(--neutral-soft);
+}
+
+.live-dot[data-state="running"] {
+  animation: pulse-soft 1.4s var(--ease-out) infinite;
+}
+
+.masthead h1 {
+  font-size: var(--text-3xl);
+  letter-spacing: -0.03em;
+}
+
+.masthead .lede {
+  color: var(--text-secondary);
+  max-width: 62ch;
+}
+
+/* ------------------------------------------------------------------ cards */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.card + .card {
+  margin-top: var(--space-5);
+}
+
+.card-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.card-title h2 {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.card-title .count {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ form */
+
+.thesis-form textarea {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  padding: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.thesis-form textarea:focus {
+  outline: none;
+  border-color: var(--accent-border);
+  box-shadow: var(--shadow-glow-accent);
+}
+
+.thesis-form textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.btn-run {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #06121f;
+  background: var(--positive);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-out),
+    filter var(--duration-fast) var(--ease-out);
+}
+
+.btn-run:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.btn-run:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-run:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-run:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+/* Example theses. These are the warmed ones, so they replay instantly - which
+   is also what keeps a public deployment from billing a live LLM run per
+   visitor. */
+.examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.example-chip {
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.example-chip:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+
+.example-chip:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ grid */
+
+.results-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+  margin-top: var(--space-5);
+}
+
+@media (max-width: 900px) {
+  .results-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.rail {
+  position: sticky;
+  top: var(--space-5);
+}
+
+@media (max-width: 900px) {
+  .rail {
+    position: static;
+  }
+}
+
+/* -------------------------------------------------------------- timeline */
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.step[data-status="running"] {
+  background: var(--accent-soft);
+}
+
+.step-marker {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--border-strong);
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  color: var(--bg);
+}
+
+.step[data-status="done"] .step-marker {
+  background: var(--positive);
+  border-color: var(--positive);
+}
+
+.step[data-status="failed"] .step-marker {
+  background: var(--negative);
+  border-color: var(--negative);
+}
+
+.step[data-status="running"] .step-marker {
+  border-color: var(--accent);
+  border-top-color: transparent;
+  animation: spin 0.7s linear infinite;
+}
+
+.step-body {
+  min-width: 0;
+}
+
+.step-label {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.step[data-status="done"] .step-label,
+.step[data-status="running"] .step-label {
+  color: var(--text-primary);
+}
+
+.step-detail {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------ idea header */
+
+.idea-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.idea-ticker {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.idea-company {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: var(--radius-full);
+  border: 1px solid;
+}
+
+.badge[data-tone="positive"] {
+  color: var(--positive);
+  background: var(--positive-soft);
+  border-color: var(--positive-border);
+}
+
+.badge[data-tone="negative"] {
+  color: var(--negative);
+  background: var(--negative-soft);
+  border-color: var(--negative-border);
+}
+
+.badge[data-tone="warning"] {
+  color: var(--warning);
+  background: var(--warning-soft);
+  border-color: var(--warning-border);
+}
+
+.badge[data-tone="neutral"] {
+  color: var(--text-secondary);
+  background: var(--neutral-soft);
+  border-color: var(--neutral-border);
+}
+
+/* -------------------------------------------------------------- metrics */
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.metric-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.metric-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.metric-note {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ------------------------------------------------------------- catalysts */
+
+.catalyst {
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--border);
+}
+
+.catalyst:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.catalyst-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.catalyst-headline {
+  font-weight: 600;
+  font-size: var(--text-base);
+}
+
+.catalyst-quote {
+  margin-top: var(--space-3);
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--border-strong);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.catalyst-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--accent-strong);
+  border-bottom: 1px solid var(--accent-border);
+}
+
+.source-link:hover {
+  text-decoration: none;
+  border-bottom-color: var(--accent-strong);
+}
+
+/* ---------------------------------------------------------------- debate */
+
+.debate {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-5);
+}
+
+.case {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+
+.case[data-side="bull"] {
+  border-color: var(--positive-border);
+}
+
+.case[data-side="bear"] {
+  border-color: var(--negative-border);
+}
+
+.case h3 {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-3);
+}
+
+.case[data-side="bull"] h3 {
+  color: var(--positive);
+}
+
+.case[data-side="bear"] h3 {
+  color: var(--negative);
+}
+
+.case-body {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+/* ---------------------------------------------------------------- chart */
+
+.chart-wrap {
+  width: 100%;
+  height: 240px;
+  margin-top: var(--space-4);
+}
+
+.legend {
+  display: flex;
+  gap: var(--space-5);
+  margin-top: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.swatch {
+  width: 10px;
+  height: 2px;
+  border-radius: var(--radius-full);
+}
+
+/* ---------------------------------------------------------------- states */
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.notice[data-tone="error"] {
+  color: var(--negative);
+  background: var(--negative-soft);
+  border: 1px solid var(--negative-border);
+}
+
+.notice[data-tone="info"] {
+  color: var(--text-secondary);
+  background: var(--neutral-soft);
+  border: 1px solid var(--border);
+}
+
+.empty {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-family: var(--font-mono);
+}
+
+.rationale {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+
+.footer {
+  margin-top: var(--space-7);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

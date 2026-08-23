@@ -1,0 +1,15 @@
+# The data cache is 1.4 GB and arrives from DATA_BUNDLE_URL at boot, not from
+# the build context. Copying it here would make every build upload it.
+data/cache/
+
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+frontend/
+cpp/build/
+dist/
+tests/
+*.md
+!README.md

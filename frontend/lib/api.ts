@@ -106,7 +106,17 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`API ${res.status} ${path}: ${body || res.statusText}`);
+    // FastAPI puts the human-readable reason in `detail`. Surfacing the raw
+    // JSON envelope instead turns a deliberate, explanatory refusal - like the
+    // public-demo guard's 409 - into something that reads as a crash.
+    let detail = body;
+    try {
+      const parsed = JSON.parse(body);
+      if (typeof parsed?.detail === "string") detail = parsed.detail;
+    } catch {
+      /* not JSON: fall through to the raw body */
+    }
+    throw new Error(detail || res.statusText || `Request failed (${res.status})`);
   }
   return res.json() as Promise<T>;
 }

@@ -1,0 +1,55 @@
+# Render blueprint for the backend.
+#
+# Create it from the dashboard with "New > Blueprint" pointed at this repo, or
+# by importing this file. Values marked `sync: false` are secrets - Render
+# prompts for them rather than reading them from here, so nothing sensitive
+# lives in git.
+
+services:
+  - type: web
+    name: aqc-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter          # free tier spins down after inactivity; a cold start
+                           # in front of someone looking at the link reads as
+                           # broken, which is the failure this deploy exists to
+                           # remove.
+    region: ohio
+    healthCheckPath: /health
+    autoDeploy: false      # deploy on purpose, not on every push to main
+
+    disk:
+      name: aqc-data
+      mountPath: /var/data
+      sizeGB: 2            # bundle is ~250 MB unpacked; headroom for re-warming
+
+    envVars:
+      # ---- secrets, entered in the Render dashboard ----
+      - key: LLM_API_KEY
+        sync: false
+      - key: DATA_BUNDLE_URL     # GitHub release asset from package_data.py
+        sync: false
+      - key: SEC_USER_AGENT
+        sync: false
+
+      # ---- the frontend that is allowed to call this API ----
+      # Comma-separated. Add the Vercel URL once it exists.
+      - key: EXTRA_CORS_ORIGINS
+        sync: false
+
+      # ---- deployment behaviour ----
+      # Answer from the warm cache only, so an open URL cannot run up an LLM
+      # bill. Turn this off if you want live research on a private instance.
+      - key: PUBLIC_DEMO_MODE
+        value: "true"
+
+      # Freeze "today" to the date the cache was warmed. Without this every
+      # cached entry expires at midnight and the next visitor pays a full run.
+      # Re-warming on a newer snapshot? Move this date with it.
+      - key: PINNED_AS_OF
+        value: "2026-08-22"
+
+      - key: DATA_CACHE_DIR
+        value: /var/data/cache
+      - key: LOG_LEVEL
+        value: INFO
