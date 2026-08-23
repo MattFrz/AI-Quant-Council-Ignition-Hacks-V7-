@@ -1,6 +1,7 @@
 import type { BacktestResult } from "../../lib/types";
 import { int, num, pct, signedPct } from "../../lib/format";
 import { EquityCurve } from "../../charts/EquityCurve";
+import { DrawdownChart } from "../../charts/DrawdownChart";
 
 /**
  * The strategy's own record: what the backtest did, after costs.
@@ -36,6 +37,9 @@ export function QuantPanel({ backtest }: { backtest: BacktestResult | null }) {
         equity={backtest.equity_curve ?? []}
         benchmark={backtest.benchmark_curve ?? []}
       />
+
+      <h3 className="subhead">Drawdown</h3>
+      <DrawdownChart drawdown={backtest.drawdown_curve ?? []} />
 
       <div className="metrics">
         <div>
@@ -76,6 +80,26 @@ export function QuantPanel({ backtest }: { backtest: BacktestResult | null }) {
             + {backtest.slippage_model.replace(/_/g, " ")} slippage
           </div>
         </div>
+        <div>
+          <div className="metric-label">Total return</div>
+          <div className="metric-value">{pct(backtest.total_return)}</div>
+          <div className="metric-note">whole window</div>
+        </div>
+        <div>
+          <div className="metric-label">ADV cap</div>
+          <div className="metric-value">{pct(backtest.max_adv_participation, 0)}</div>
+          <div className="metric-note">max participation</div>
+        </div>
+        {backtest.window ? (
+          <div>
+            <div className="metric-label">Window</div>
+            <div className="metric-value" style={{ fontSize: "var(--text-base)" }}>
+              {String(backtest.window.test_start).slice(0, 7)} to{" "}
+              {String(backtest.window.test_end).slice(0, 7)}
+            </div>
+            <div className="metric-note">test period</div>
+          </div>
+        ) : null}
       </div>
 
       <p

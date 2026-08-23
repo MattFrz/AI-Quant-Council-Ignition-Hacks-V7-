@@ -1,5 +1,7 @@
 # AI Quant Council
 
+### [Try it: ai-quant-council.vercel.app](https://ai-quant-council.vercel.app)
+
 **Ask any AI chatbot whether a stock is a good buy and it will hand you a Sharpe
 ratio. That number is invented.** We built the layer the AI-finance category is
 missing: a quantitative engine that tests the AI's idea against historical
@@ -16,7 +18,7 @@ thing through a backtest that is allowed to reject it.
 **The LLM proposes. The quantitative engine decides.** The model never emits a
 Sharpe ratio, an alpha score, a factor weight or a VaR.
 
-Our own strategy returns **+5.0% annualised excess against SPY at Sharpe 1.22**,
+Our own strategy returns **+6.0% annualised excess against SPY at Sharpe 1.23**,
 after commission and participation-rate slippage. The event study on the
 catalysts we extract typically finds **too few independent events to be
 statistically significant**, and reports that rather than a number. We say so
@@ -25,8 +27,10 @@ thing this replaces.
 
 | | |
 |---|---|
+| [Live app](https://ai-quant-council.vercel.app) | Eighteen pre-computed theses, no setup |
 | [Submission description](docs/submission.md) | What it is and why it matters |
 | [Architecture](docs/architecture.md) | The pipeline, the contract, the look-ahead defence |
+| [Deployment](docs/deploy.md) | How the hosted version is put together |
 | [Who built what](docs/team_ownership.md) | Four lanes, four owners |
 
 **IgnitionHacks V7 - Fintech**, Matt, Nalin, Zain, Cecile
@@ -43,6 +47,10 @@ bash scripts/setup_env.sh
 
 Then fill in your keys in `.env` - the LLM key, and `SEC_USER_AGENT` with a real
 name and email (EDGAR rejects requests without one).
+
+`.env` is gitignored and has never been committed. Only `.env.example` is
+tracked, and it carries placeholders. Keep it that way: a key in git history
+stays there after you delete the line.
 
 ## Run
 
@@ -127,6 +135,31 @@ and looks like a bug that only affects some prompts.
 python -m backend.core.cache clear && python -m backend.core.cache warm
 ```
 
+## Hosted version
+
+[ai-quant-council.vercel.app](https://ai-quant-council.vercel.app) runs the same
+code with nothing on a laptop: the frontend on Vercel, the backend in a
+container on Render with the index and warmed results on a persistent disk.
+
+Three pages: **Research** runs the thesis and shows the live timeline, evidence,
+debate, backtest and risk. **Opportunities** shows the universe funnel and the
+ranked shortlist. **Portfolio** sizes the book, and states which names the risk
+layer refused and why.
+
+Two settings separate the hosted instance from a local checkout, both in
+[docs/deploy.md](docs/deploy.md):
+
+- `LIVE_RUNS_PER_HOUR` and `LIVE_RUNS_PER_DAY` bound how many uncached theses
+  it will research, because an open URL with a live LLM key behind it bills the
+  owner for every visitor who types something new. Warmed theses replay free and
+  are never counted. (`PUBLIC_DEMO_MODE` is the stricter alternative: warmed
+  theses only, zero spend, no live research at all.)
+- `PINNED_AS_OF` freezes the date a run treats as today. The cache key includes
+  that date, so without it every warmed entry expires at midnight and the next
+  visitor pays for a full run.
+
+Run it locally and neither applies: any thesis, researched for real, unlimited.
+
 ## Status
 
 - [x] Phase 0 - foundation
@@ -140,7 +173,7 @@ python -m backend.core.cache clear && python -m backend.core.cache warm
 
 Stated here rather than left for a reader to discover.
 
-- The retrieval corpus covers **17 companies**; the quant model scores **483**.
+- The retrieval corpus covers **17 companies**; the quant model scores **499**.
   Deep research only runs where filings exist to cite.
 - The backtest runs on the **7 ranked candidates**, not the full universe.
 - **No walk-forward split in the demo path.** `run_walk_forward` exists and is

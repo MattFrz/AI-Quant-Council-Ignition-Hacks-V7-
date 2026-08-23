@@ -186,3 +186,55 @@ export async function fetchHealth(): Promise<{ status: string; offline_mode: boo
   }
   return apiFetch("/health");
 }
+
+// ---------------------------------------------------------------- portfolio
+
+export interface PortfolioPosition {
+  ticker: string;
+  company_name: string;
+  side: string;
+  position_size_pct: number;
+  alpha_score: number;
+  confidence: number;
+  risk_band: string;
+}
+
+export interface ExcludedCandidate {
+  ticker: string;
+  reasons: string[];
+}
+
+export interface PortfolioResponse {
+  positions: PortfolioPosition[];
+  excluded: ExcludedCandidate[];
+  total_invested_pct: number;
+  cash_pct: number;
+}
+
+/**
+ * Size a book from validated ideas.
+ *
+ * The interesting half of the response is `excluded`: a name that cleared
+ * research and the backtest can still be refused here on risk grounds, and
+ * that refusal is the product working rather than an empty state.
+ */
+export async function buildPortfolio(
+  candidates: TradeIdea[],
+  maxPositionPct?: number,
+): Promise<PortfolioResponse> {
+  if (USE_FIXTURE) {
+    return delay<PortfolioResponse>({
+      positions: [],
+      excluded: [{ ticker: FIXTURE_TRADE_IDEA.ticker, reasons: ["fixture mode"] }],
+      total_invested_pct: 0,
+      cash_pct: 100,
+    });
+  }
+  return apiFetch<PortfolioResponse>("/api/portfolio", {
+    method: "POST",
+    body: JSON.stringify({
+      candidates,
+      ...(maxPositionPct !== undefined ? { max_position_pct: maxPositionPct } : {}),
+    }),
+  });
+}

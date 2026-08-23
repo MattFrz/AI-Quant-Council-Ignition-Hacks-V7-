@@ -22,22 +22,23 @@ def start_research(request: ThesisRequest):
     it either replays a cached result instantly or spins up a background
     thread and returns right away (see job_runner.py's own docstring).
     """
-    # A public instance answers from the warm cache only.
+    # Decide what an uncached thesis costs us before running it.
     #
-    # Every uncached thesis is a real LLM run charged to whoever owns the key,
-    # so an open URL without this is a bill that grows with traffic. Refusing
-    # with a list of what IS available is friendlier than a rate limit and
-    # keeps the demo instant.
-    if settings.public_demo_mode:
-        from backend.core import cache
+    # A cached replay is free, so it always proceeds. Anything else is a real
+    # LLM run charged to whoever owns the key, and an open URL without a bound
+    # on those is a bill that grows with traffic.
+    from backend.core import cache
+    from backend.services import ratelimit
 
-        hit = cache.get(
-            request.thesis,
-            request.as_of,
-            request.max_candidates,
-            request.universe_size,
-        )
-        if hit is None:
+    hit = cache.get(
+        request.thesis,
+        request.as_of,
+        request.max_candidates,
+        request.universe_size,
+    )
+
+    if hit is None:
+        if settings.public_demo_mode:
             raise HTTPException(
                 status_code=409,
                 detail=(
@@ -46,6 +47,13 @@ def start_research(request: ThesisRequest):
                     "anything you like."
                 ),
             )
+
+        refusal = ratelimit.check(
+            settings.live_runs_per_hour, settings.live_runs_per_day
+        )
+        if refusal:
+            raise HTTPException(status_code=429, detail=refusal)
+        ratelimit.record()
 
     job = start_job(
         thesis=request.thesis,

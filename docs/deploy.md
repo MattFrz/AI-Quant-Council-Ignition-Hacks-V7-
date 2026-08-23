@@ -84,16 +84,34 @@ it the browser blocks every request and the UI reports "Failed to fetch".
 
 ## Two settings that decide how a public instance behaves
 
-### `PUBLIC_DEMO_MODE`
+### `PUBLIC_DEMO_MODE` and the run limits
 
-On by default in `render.yaml`. The API answers theses that are already warmed
-and refuses anything else with a 409 and an explanation.
+Both exist for the same reason: a public URL with a live LLM key behind it bills
+you for every visitor who types something new. A cached replay is free, so only
+uncached theses are ever affected.
 
-This exists because a public URL with a live LLM key behind it bills you for
-every visitor who types something new. Off, each novel thesis is a real run:
-roughly 70 seconds and a few cents, with no upper bound on how many.
+`PUBLIC_DEMO_MODE=true` is the blunt version. The API answers warmed theses and
+refuses everything else with a 409. It caps spend at exactly zero, and it also
+makes the deployed app unable to research anything, which is most of what the
+project does.
 
-Turn it off for a private instance where you want live research.
+`LIVE_RUNS_PER_HOUR` and `LIVE_RUNS_PER_DAY` are the better setting for a public
+demo. Turn `PUBLIC_DEMO_MODE` off, set these, and real research works for
+visitors while a stranger or a crawler cannot leave your key running. A run
+costs roughly 70 seconds and a few cents, so:
+
+```
+PUBLIC_DEMO_MODE=false
+LIVE_RUNS_PER_HOUR=6
+LIVE_RUNS_PER_DAY=40
+```
+
+bounds the worst case near a dollar a day. Over the limit, callers get a 429
+explaining it and the warmed theses still work.
+
+Counters are in process memory and reset on restart. They bound a runaway, they
+do not bill anyone accurately. `0` means unlimited, which is the default, so a
+local checkout is never throttled.
 
 ### `PINNED_AS_OF`
 

@@ -63,6 +63,21 @@ export function RiskPanel({ risk }: { risk: RiskMetricsType | null }) {
             {risk.sector ?? "–"}
           </div>
         </div>
+        <div>
+          <div className="metric-label">Concentration</div>
+          <div className="metric-value">{pct(risk.concentration)}</div>
+          <div className="metric-note">largest single weight</div>
+        </div>
+        <div>
+          <div className="metric-label">Avg correlation</div>
+          <div className="metric-value">{num(risk.avg_correlation)}</div>
+          <div className="metric-note">to the rest of the book</div>
+        </div>
+        <div>
+          <div className="metric-label">Days to liquidate</div>
+          <div className="metric-value">{num(risk.days_to_liquidate, 3)}</div>
+          <div className="metric-note">at the ADV cap</div>
+        </div>
       </div>
     </section>
   );

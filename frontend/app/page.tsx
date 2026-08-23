@@ -12,6 +12,8 @@ import { DebatePanel } from "../components/debate/DebatePanel";
 import { QuantPanel } from "../components/quant/QuantPanel";
 import { RiskPanel } from "../components/risk/RiskMetrics";
 import { int } from "../lib/format";
+import { saveLastRun } from "../lib/lastRun";
+import { Nav } from "../components/nav/Nav";
 
 /**
  * Theses with a warmed cache entry behind them.
@@ -86,7 +88,9 @@ export default function Home() {
         },
         async () => {
           try {
-            setResult(await fetchResearchResult(job.job_id));
+            const finished = await fetchResearchResult(job.job_id);
+            setResult(finished);
+            saveLastRun(finished); // Opportunities and Portfolio read this
             setPhase("done");
           } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
@@ -99,6 +103,7 @@ export default function Home() {
           fetchResearchResult(job.job_id)
             .then((r) => {
               setResult(r);
+              saveLastRun(r);
               setPhase("done");
             })
             .catch(() => {
@@ -120,6 +125,7 @@ export default function Home() {
     <main className="page">
       <div className="container">
         <header className="masthead">
+          <Nav />
           <span className="eyebrow">
             <i className="live-dot" data-state={phase === "running" ? "running" : phase === "idle" ? "idle" : "done"} />
             {phase === "running"

@@ -68,7 +68,16 @@ class Settings(BaseSettings):
     #: A public URL with a live LLM key behind it bills the owner for every
     #: visitor who types something new. With this on, an uncached thesis is
     #: refused with a message rather than quietly costing money.
+    #:
+    #: This is the blunt setting: it also makes the deployed app unable to
+    #: research anything new, which is most of what the project does. Prefer
+    #: the two limits below, which allow real runs but bound the spend.
     public_demo_mode: bool = False
+
+    #: Live runs allowed per hour and per day. 0 means unlimited, so a local
+    #: checkout is never throttled. Cached replays are free and never counted.
+    live_runs_per_hour: int = 0
+    live_runs_per_day: int = 0
     frontend_origin: str = "http://localhost:3000"
     # Comma-separated extra origins allowed to call this API - e.g. the live
     # Base44 app URL. Kept separate from frontend_origin so nothing that

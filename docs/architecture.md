@@ -144,7 +144,7 @@ a less impressive number, never to a broken demo.
 
 ## Honest limits
 
-- The retrieval corpus covers 17 companies. The quant model scores 483, but deep
+- The retrieval corpus covers 17 companies. The quant model scores 499, but deep
   research only runs where filings exist to cite.
 - The backtest runs on the 7 ranked candidates, not the full universe, and is
   long-only, monthly, and ignores borrow and taxes.

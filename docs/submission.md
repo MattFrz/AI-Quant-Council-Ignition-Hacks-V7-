@@ -2,6 +2,8 @@
 
 **Track: Fintech**
 
+**Live: [ai-quant-council.vercel.app](https://ai-quant-council.vercel.app)**
+
 ## The short version
 
 Ask ChatGPT if a stock is a good buy and it will give you a Sharpe ratio. It
@@ -58,7 +60,7 @@ write it.
 the portfolio, and you get told why:
 
 ```
-EXCLUDED  VRT           risk_band=high requires confidence >= 0.75, got 0.73
+EXCLUDED  VRT           risk_band=high requires confidence >= 0.75, got 0.67
 ```
 
 That is a real run. Vertiv scored 9.4 out of 10 on the alpha model and survived
@@ -66,8 +68,8 @@ the backtest, and the portfolio layer still refused to fund it: a
 60%-volatility name needs stronger conviction than the evidence supported. The
 system is allowed to say no to its own recommendation.
 
-**It tells you when it doesn't know.** Our strategy returns 5.0% annualised
-excess return over SPY at a Sharpe of 1.22, after commission and
+**It tells you when it does not know.** Our strategy returns 6.0% annualised
+excess return over SPY at a Sharpe of 1.23, after commission and
 participation-rate slippage. The event study we run over the extracted
 catalysts usually finds too few independent events to reach significance, and
 reports that count rather than a number. A Sharpe ratio cannot leave this system

@@ -38,10 +38,19 @@ services:
         sync: false
 
       # ---- deployment behaviour ----
-      # Answer from the warm cache only, so an open URL cannot run up an LLM
-      # bill. Turn this off if you want live research on a private instance.
+      # Live research stays on, bounded by the limits below, so the deployed app
+      # can actually research a thesis a visitor types. Set PUBLIC_DEMO_MODE to
+      # "true" instead to answer warmed theses only and spend nothing.
       - key: PUBLIC_DEMO_MODE
-        value: "true"
+        value: "false"
+
+      # Uncached runs allowed per hour and per day. Cached replays are free and
+      # never counted. A run is roughly 70 seconds and a few cents, so this
+      # bounds the worst case near a dollar a day.
+      - key: LIVE_RUNS_PER_HOUR
+        value: "6"
+      - key: LIVE_RUNS_PER_DAY
+        value: "40"
 
       # Freeze "today" to the date the cache was warmed. Without this every
       # cached entry expires at midnight and the next visitor pays a full run.
