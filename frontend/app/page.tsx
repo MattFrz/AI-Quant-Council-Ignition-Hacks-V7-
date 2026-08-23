@@ -13,7 +13,6 @@ import { QuantPanel } from "../components/quant/QuantPanel";
 import { RiskPanel } from "../components/risk/RiskMetrics";
 import { int } from "../lib/format";
 import { saveLastRun } from "../lib/lastRun";
-import { Nav } from "../components/nav/Nav";
 
 /**
  * Theses with a warmed cache entry behind them.
@@ -139,7 +138,6 @@ export default function Home() {
     <main className="page">
       <div className="container">
         <header className="masthead">
-          <Nav />
           <span className="eyebrow">
             <i className="live-dot" data-state={phase === "running" ? "running" : phase === "idle" ? "idle" : "done"} />
             {phase === "running"

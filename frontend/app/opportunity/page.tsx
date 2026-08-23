@@ -6,7 +6,6 @@ import type { ResearchResponse } from "../../lib/types";
 import { loadLastRun } from "../../lib/lastRun";
 import { UniverseFunnel } from "../../components/scanner/UniverseFunnel";
 import { CandidateTable } from "../../components/scanner/CandidateTable";
-import { Nav } from "../../components/nav/Nav";
 import { int, num, pct } from "../../lib/format";
 
 /**
@@ -34,7 +33,6 @@ export default function OpportunityPage() {
     <main className="page">
       <div className="container">
         <header className="masthead">
-          <Nav />
           <h1>Opportunities</h1>
           <p className="lede">
             Every name the model considered, and the filters that removed them.

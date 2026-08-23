@@ -6,7 +6,6 @@ import { buildPortfolio } from "../../lib/api";
 import type { PortfolioResponse } from "../../lib/api";
 import type { ResearchResponse } from "../../lib/types";
 import { loadLastRun } from "../../lib/lastRun";
-import { Nav } from "../../components/nav/Nav";
 import { PositionTable } from "../../components/portfolio/PositionTable";
 import { AllocationView } from "../../components/portfolio/AllocationView";
 
@@ -57,7 +56,6 @@ export default function PortfolioPage() {
     <main className="page">
       <div className="container">
         <header className="masthead">
-          <Nav />
           <h1>Portfolio</h1>
           <p className="lede">
             What the risk layer will actually fund, and what it turned down.
