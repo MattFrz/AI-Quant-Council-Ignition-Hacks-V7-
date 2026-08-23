@@ -929,3 +929,50 @@
     padding-top: var(--space-5);
   }
 }
+
+/* ----------------------------------------------------------- scroll pane */
+
+/* Long evidence lists live in a fixed frame so the page keeps its shape
+   whether a run returned three catalysts or forty. */
+.scroll-pane {
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: var(--space-3);
+  /* A hairline the scrollbar sits against, so the pane reads as a window
+     rather than as content that happens to be cut off. */
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.scroll-pane:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+.scroll-pane > .catalyst:first-child {
+  padding-top: var(--space-4);
+}
+
+/* ---------------------------------------------------------- site footer */
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding: var(--space-5) 0;
+  margin-top: var(--space-8);
+}
+
+.site-footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.site-footer a:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}

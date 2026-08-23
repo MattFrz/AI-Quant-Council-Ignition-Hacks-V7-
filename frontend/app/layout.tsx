@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./components.css";
 import { Sidebar } from "../components/nav/Sidebar";
+import { SiteFooter } from "../components/nav/SiteFooter";
 
 export const metadata: Metadata = {
   title: "AI Quant Council",
@@ -39,7 +40,10 @@ export default function RootLayout({
       <body>
         <div className="shell">
           <Sidebar />
-          <div className="shell-main">{children}</div>
+          <div className="shell-main">
+            {children}
+            <SiteFooter />
+          </div>
         </div>
       </body>
     </html>
