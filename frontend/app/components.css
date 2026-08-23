@@ -1198,3 +1198,12 @@
 .results-grid > * > .card:first-child {
   margin-top: 0;
 }
+
+/* A card following a grid, not another card, gets no margin from
+   `.card + .card`, so it butts against the row above it. Same for a card
+   after a notice. */
+.exec-grid + .card,
+.results-grid + .card,
+.notice + .card {
+  margin-top: var(--space-5);
+}
