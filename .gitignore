@@ -41,3 +41,7 @@ cpp/third_party/*
 Thumbs.db
 .vscode/
 .idea/
+
+# Deployment bundle from scripts/package_data.py. Ships as a GitHub release
+# asset, never in the repo - it is far past the 100MB file limit.
+dist/
