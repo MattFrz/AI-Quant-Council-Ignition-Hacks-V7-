@@ -143,12 +143,16 @@ finding the old index and skipping.
 
 ---
 
-## What is deliberately not deployed
+## The C++ extension
 
-**The C++ execution simulator.** `aqc_exec` is optional at runtime -
-[`slippage.py`](../quant/backtest/slippage.py) falls back to the analytic model
-and logs that it did - so the image skips a compiler toolchain for a path the
-API does not currently take.
+The image is built in two stages: the first compiles `aqc_exec` with g++, the
+second copies out only the resulting `.so`. The compiler does not ship.
+
+The extension stays optional at runtime. `quant/backtest/slippage.py` falls back
+to the analytic model without it, and `/api/execution` answers 503 rather than
+pretending. So a build that fails to compile it degrades rather than breaking.
+
+## What is deliberately not deployed
 
 **The seed and index-build pipelines.** Building the index needs the 690 MB
 embedding cache and a lot of API calls. That is a local operation whose output

@@ -238,3 +238,59 @@ export async function buildPortfolio(
     }),
   });
 }
+
+// ---------------------------------------------------------------- execution
+
+export interface BookLevel {
+  price: number;
+  shares: number;
+}
+
+export interface ExecutionOutcome {
+  mode: string;
+  requested: number;
+  filled: number;
+  avg_price: number;
+  arrival_mid: number;
+  slippage_bps: number;
+  levels_consumed: number;
+  complete: boolean;
+  note: string;
+}
+
+export interface SimulationResponse {
+  available: boolean;
+  bids: BookLevel[];
+  asks: BookLevel[];
+  mid: number;
+  spread_bps: number;
+  capacity_5bps: number;
+  outcomes: ExecutionOutcome[];
+  engine: string;
+}
+
+export interface SimulationRequest {
+  shares?: number;
+  side?: "BUY" | "SELL";
+  slices?: number;
+  levels?: number;
+  level_shares?: number;
+  queue_volume?: number;
+}
+
+/**
+ * Run the C++ execution simulator.
+ *
+ * Every number in the response is computed by the native extension walking a
+ * real price-time-priority book, not by anything in this file. A deployment
+ * without the extension built answers 503, which surfaces as an error rather
+ * than as plausible-looking output.
+ */
+export async function simulateExecution(
+  req: SimulationRequest,
+): Promise<SimulationResponse> {
+  return apiFetch<SimulationResponse>("/api/execution", {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}

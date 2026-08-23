@@ -16,6 +16,7 @@ const SECTIONS = [
   { href: "/", label: "Research", hint: "Thesis to decision" },
   { href: "/opportunity", label: "Opportunities", hint: "Funnel and shortlist" },
   { href: "/portfolio", label: "Portfolio", hint: "Sized, or refused" },
+  { href: "/execution", label: "Execution", hint: "C++ order book" },
 ];
 
 export function Sidebar() {

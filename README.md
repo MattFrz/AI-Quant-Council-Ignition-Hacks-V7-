@@ -141,10 +141,11 @@ python -m backend.core.cache clear && python -m backend.core.cache warm
 code with nothing on a laptop: the frontend on Vercel, the backend in a
 container on Render with the index and warmed results on a persistent disk.
 
-Three pages: **Research** runs the thesis and shows the live timeline, evidence,
+Four pages: **Research** runs the thesis and shows the live timeline, evidence,
 debate, backtest and risk. **Opportunities** shows the universe funnel and the
 ranked shortlist. **Portfolio** sizes the book, and states which names the risk
-layer refused and why.
+layer refused and why. **Execution** drives the C++ order book directly: size an
+order and watch what crossing the spread actually costs.
 
 Two settings separate the hosted instance from a local checkout, both in
 [docs/deploy.md](docs/deploy.md):
@@ -178,8 +179,10 @@ Stated here rather than left for a reader to discover.
 - The backtest runs on the **7 ranked candidates**, not the full universe.
 - **No walk-forward split in the demo path.** `run_walk_forward` exists and is
   tested, but the live pipeline runs a single in-sample window.
-- The **C++ execution simulator is built and tested but not wired into the
-  backtest.** Slippage uses the Python participation-rate model.
+- The **C++ execution simulator is built, tested and runnable from the app, but
+  it is not wired into the backtest.** The Execution page calls it live through
+  `/api/execution`, so its fills are real; the backtest still charges slippage
+  with the Python participation-rate model.
 - The universe is the **current** S&P 500, so backtests carry survivorship bias.
   `scripts/run_backtest.py` prints that warning itself.
 - Event studies usually have **too few independent events** to reach

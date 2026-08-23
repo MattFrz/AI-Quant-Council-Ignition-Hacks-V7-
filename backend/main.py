@@ -57,6 +57,7 @@ def fixture() -> dict:
 from backend.api.routes import (  # noqa: E402
     backtest,
     research,
+    execution,
     risk,
     scan,
     stream,
@@ -74,6 +75,10 @@ app.include_router(thesis.router, prefix="/api")
 app.include_router(scan.router, prefix="/api")
 app.include_router(research.router, prefix="/api")
 app.include_router(stream.router, prefix="/api")
+
+# Phase 4: the C++ execution layer, exposed so it can be demonstrated
+# rather than described. Returns 503 if the extension is not built.
+app.include_router(execution.router, prefix="/api")
 
 
 @app.on_event("startup")
