@@ -51,11 +51,77 @@ export function subscribeToResearchEvents(
   onEvent: ResearchEventHandler,
   onDone?: () => void,
   onError?: (err: Event | Error) => void,
+  paceMs = 0,
 ): ResearchStreamHandle {
   if (USE_FIXTURE || streamUrl === FIXTURE_STREAM_URL) {
     return replayFixtureTimeline(onEvent, onDone);
   }
+  if (paceMs > 0) {
+    return pace(
+      (handler, done, err) => openLiveStream(streamUrl, handler, done, err),
+      onEvent,
+      onDone,
+      onError,
+      paceMs,
+    );
+  }
   return openLiveStream(streamUrl, onEvent, onDone, onError);
+}
+
+/**
+ * Release events on a timer instead of as fast as they arrive.
+ *
+ * A cached result streams all thirteen steps in well under a second, so the
+ * timeline jumps from empty to complete and the reader never sees the pipeline
+ * they are being told about. Pacing only delays DISPLAY of events that have
+ * already happened: no data is altered, invented, or reordered, and a live run
+ * (which arrives at its own pace over ~70 seconds) passes paceMs of 0 and is
+ * untouched.
+ */
+function pace(
+  open: (
+    onEvent: ResearchEventHandler,
+    onDone?: () => void,
+    onError?: (err: Event | Error) => void,
+  ) => ResearchStreamHandle,
+  onEvent: ResearchEventHandler,
+  onDone: (() => void) | undefined,
+  onError: ((err: Event | Error) => void) | undefined,
+  paceMs: number,
+): ResearchStreamHandle {
+  const queue: ResearchEvent[] = [];
+  let sourceDone = false;
+  let cancelled = false;
+  let timer: ReturnType<typeof setInterval>;
+
+  const inner = open(
+    (event) => queue.push(event),
+    () => {
+      sourceDone = true;
+    },
+    onError,
+  );
+
+  timer = setInterval(() => {
+    if (cancelled) return;
+    const next = queue.shift();
+    if (next) {
+      onEvent(next);
+      return;
+    }
+    if (sourceDone) {
+      clearInterval(timer);
+      onDone?.();
+    }
+  }, paceMs);
+
+  return {
+    close: () => {
+      cancelled = true;
+      clearInterval(timer);
+      inner.close();
+    },
+  };
 }
 
 function makeEvent(stepId: string, status: StepStatus, detail: string | null): ResearchEvent {

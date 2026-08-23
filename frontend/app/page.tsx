@@ -39,6 +39,16 @@ const EXAMPLES: { label: string; thesis: string }[] = [
 type Phase = "idle" | "running" | "done" | "error";
 
 /**
+ * Gap between events when replaying a cached run.
+ *
+ * A run emits about 40 events across its thirteen steps (each reports starting
+ * and finishing), so 55ms puts the whole replay near two seconds: long enough
+ * to read as a process rather than a flash, short enough that nobody waits for
+ * it. Live runs are not paced at all.
+ */
+const CACHED_REPLAY_MS = 55;
+
+/**
  * How many names the alpha model actually scored.
  *
  * NOT the first funnel row - that is everything with price data (504), which
@@ -111,6 +121,10 @@ export default function Home() {
               setPhase("error");
             });
         },
+        // A cached result arrives all at once. Pacing its replay lets the
+        // reader watch the thirteen steps they are being told about; a live
+        // run already takes its own time, so it is left alone.
+        job.from_cache ? CACHED_REPLAY_MS : 0,
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
