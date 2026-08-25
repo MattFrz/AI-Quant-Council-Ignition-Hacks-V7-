@@ -100,7 +100,7 @@ export default function OpportunityPage() {
                           <td className="mono">
                             {c.operator} {c.value}
                           </td>
-                          <td className="text-secondary">{c.rationale ?? "–"}</td>
+                          <td className="text-secondary">{c.rationale ?? "-"}</td>
                         </tr>
                       ))}
                     </tbody>

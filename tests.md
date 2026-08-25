@@ -8,7 +8,7 @@ something you decided to accept rather than something you discovered late.
 python -m pytest tests/ -q
 ```
 
-**233 tests, 229 passing and 4 skipped, roughly 6 minutes. No network required.**
+**233 tests, 229 passing and 4 skipped, roughly 8 minutes. No network required.**
 
 The 4 skips are the end-to-end pipeline tests, which skip automatically when
 `data/cache/` is empty so the suite still passes on a fresh clone.

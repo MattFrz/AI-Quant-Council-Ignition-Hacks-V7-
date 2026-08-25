@@ -30,7 +30,7 @@ export function CandidateTable({ candidates }: { candidates: CandidateSummary[] 
             <tr key={c.ticker}>
               <td className="mono strong">{c.ticker}</td>
               <td>{c.company_name}</td>
-              <td className="text-secondary">{c.sector ?? "–"}</td>
+              <td className="text-secondary">{c.sector ?? "-"}</td>
               <td className="num">
                 <span className="score-cell">
                   <span className="mono">{num(c.alpha_score, 1)}</span>
@@ -43,7 +43,7 @@ export function CandidateTable({ candidates }: { candidates: CandidateSummary[] 
                 </span>
               </td>
               <td className="text-secondary catalyst-cell">
-                {c.headline_catalyst ?? "–"}
+                {c.headline_catalyst ?? "-"}
               </td>
             </tr>
           ))}

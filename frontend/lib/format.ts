@@ -7,7 +7,7 @@
  * Rendering "-" is correct there; rendering "0" would be a lie.
  */
 
-export const DASH = "–";
+export const DASH = "-";
 
 export function pct(value: number | null | undefined, digits = 1): string {
   if (value === null || value === undefined || Number.isNaN(value)) return DASH;

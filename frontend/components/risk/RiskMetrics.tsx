@@ -60,7 +60,7 @@ export function RiskPanel({ risk }: { risk: RiskMetricsType | null }) {
         <div>
           <div className="metric-label">Sector</div>
           <div className="metric-value" style={{ fontSize: "var(--text-base)" }}>
-            {risk.sector ?? "–"}
+            {risk.sector ?? "-"}
           </div>
         </div>
         <div>

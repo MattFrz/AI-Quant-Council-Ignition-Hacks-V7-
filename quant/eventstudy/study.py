@@ -16,7 +16,7 @@ MIN_EVENTS = 5
 
 @dataclass
 class EventStudyResult:
-    """The curve Cecile's EventStudyChart draws, plus its significance."""
+    """The cumulative abnormal return curve, plus its significance."""
 
     label: str
     n_events: int
