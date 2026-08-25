@@ -78,19 +78,6 @@ python scripts/verify_contract.py
 
 ---
 
-## Layout
-
-| Path | Owner | What lives here |
-|---|---|---|
-| `data/schemas/` | **shared** | The data contract. Change by agreement only. |
-| `data/sources/`, `data/pipelines/` | Matt | Yahoo, EDGAR, price and fundamental pipelines |
-| `quant/universe/`, `quant/backtest/`, `quant/risk/` | Matt | Universe, event-driven backtester, risk engine |
-| `quant/factors/`, `quant/signals/`, `quant/alpha/`, `quant/eventstudy/` | Nalin | Factor construction, alpha model, statistical testing |
-| `backend/agents/`, `backend/research/`, `backend/rag/` | Zain | Research agent, bull/bear debate, retrieval |
-| `frontend/`, `backend/portfolio/` | Cecile | Dashboard, portfolio construction, demo |
-| `cpp/` | Matt | Order book, execution simulation (stretch) |
-| `backend/api/` | **shared** | HTTP layer |
-
 ## Ground rules
 
 1. **Cache everything to disk.** No demo path may depend on a live API call.
